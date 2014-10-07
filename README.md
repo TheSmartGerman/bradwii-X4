@@ -62,13 +62,16 @@ Manual accelerometer calibration:
 When burning a firmware with new PID control parameters, checkboxconfig or anything else from the usersettings struct make sure to erase the data flash.
 Otherwise the firmware will continue to use the old data.
 
-Resetting the board using OpenOCD and the UM232H based SWD adapter does not work. Need to check with scope what's going on.
+If the quadcopter has the newer Mini54ZDE (labeled HBS002) instead of the Mini54ZAN (sometimes labeled HBS001) make sure that all unused bits of CONFIG0 are set to 1.
+It says so in the datasheet and if they are set to 0 witing to flash or config registers does not work as expected.
+
+Still having reset issues using OpenOCD and the UM232H based SWD adapter. Using "cortex_m reset_config vectreset" first seemed to work but later it didn't.
 
 The OpenOCD Mini51 flash driver did not work for me, so I modified it.
 Config file and modified source [here](https://gist.github.com/TheLastMutt/d1c1948acaace7444c1c).
 
 #### The H107L uses the following hardware
- * Nuvoton MINI54ZAN ARM Cortex-M0
+ * Nuvoton MINI54ZAN (or MINI54ZDE in later models) ARM Cortex-M0
  * AMICCOM A7105 2.5GHz transceiver
  * mCube MC3210 3-Axis Accelerometer
  * InvenSense MPU-3050 3-Axis MEMS Gyroscope
