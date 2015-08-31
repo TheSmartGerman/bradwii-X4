@@ -12,10 +12,11 @@ For now 6 channels can be used, but it can be easily extended to 8 (defined in d
 You may need to erase full ship as the transmitter id is stored into flash.
 
 Support for TH9X bind (first time):
-- Switch the hubsan on (blue leds are flashing)
-- Switch on the TH9X in binding mode (press the module button while turning on), red leds will flashing
-- Switch off the transmitter, then switch on again, the hubsan shoud start callibration
-Next time you just have to switch on the husban and the transmitter.
+- Switch the hubsan on (blue leds will flash)
+- Switch on the TH9X in binding mode (press the module button while turning on), red leds will flash (wait for first TX frame)
+- Switch off the transmitter, then switch on again, the hubsan shoud start calibration
+
+Next time you just have to switch on the hubsan and the transmitter.
 
 Support for TxAdapter_gke autobinding in flysky mode (https://github.com/gke/TxAdapter_gke):
  - Just switch on the hubsan and the transmitter.
@@ -23,7 +24,8 @@ Support for TxAdapter_gke autobinding in flysky mode (https://github.com/gke/TxA
 
 As transmitter id is stored into flash, you don't need to bind every times, if any id is stored, it will wait for
 any frame from the transmitter before the calibration start.
-So you can use an other transmitter unless you perfom a full ship erase.
+
+So you can't use an other transmitter unless you perfom a full ship erase.
 
 
 #### The H107L uses the following hardware
