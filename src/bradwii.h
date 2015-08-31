@@ -109,6 +109,9 @@ typedef struct {
     uint8_t txid[MAXTXIDSIZE];
     uint8_t freqhopping[MAXFHSIZE];
 #endif    
+#ifdef FLYSKY_TX
+	  uint32_t flysky_id;
+#endif
 } usersettingsstruct;
 
 void defaultusersettings(void);
