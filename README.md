@@ -21,6 +21,7 @@ Next time you just have to switch on the hubsan and the transmitter.
 Support for TxAdapter_gke autobinding in flysky mode (https://github.com/gke/TxAdapter_gke):
  - Just switch on the hubsan and the transmitter.
 
+Channel order : THROTTLE, ROLL, PITCH, YAW
 
 As transmitter id is stored into flash, you don't need to bind every times, if any id is stored, it will wait for
 any frame from the transmitter before the calibration start.
