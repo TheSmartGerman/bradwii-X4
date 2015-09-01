@@ -235,16 +235,16 @@ void rx_fp_lowpassfilter(fixedpointnum *variable, fixedpointnum newvalue, fixedp
 }
 void decodepacket() {
 
-	rx_fp_lowpassfilter(&global.rxvalues[THROTTLEINDEX], //YAWINDEX
+	rx_fp_lowpassfilter(&global.rxvalues[ROLLINDEX],
 			scaleValue(packet[5] + 256 * packet[6],0)
 			/*((fixedpointnum) word_temp )*/, global.timesliver, 0L, 0);
-	rx_fp_lowpassfilter(&global.rxvalues[ROLLINDEX],
-			-scaleValue(packet[7] + 256 * packet[8], 0)
+	rx_fp_lowpassfilter(&global.rxvalues[PITCHINDEX],
+			scaleValue(packet[7] + 256 * packet[8], 0)
 			/*((fixedpointnum) word_temp )*/, global.timesliver, 0L, 0);
-	rx_fp_lowpassfilter(&global.rxvalues[PITCHINDEX], // THROTTLEINDEX
+	rx_fp_lowpassfilter(&global.rxvalues[THROTTLEINDEX],
 			scaleValue(packet[9] + 256 * packet[10], 0)
 			/*((fixedpointnum) word_temp )*/, global.timesliver, 0L, 0);
-	rx_fp_lowpassfilter(&global.rxvalues[YAWINDEX], //PITCHINDEX
+	rx_fp_lowpassfilter(&global.rxvalues[YAWINDEX],
 			scaleValue(packet[11] + 256 * packet[12], 1000)
 			/*((fixedpointnum) word_temp )*/, global.timesliver, 0L, 0);
 	rx_fp_lowpassfilter(&global.rxvalues[AUX1INDEX],
