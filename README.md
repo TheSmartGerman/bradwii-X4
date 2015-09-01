@@ -7,7 +7,7 @@ As the X4 board use the same rf chip as the TH9X tx (A7105), it can used with th
 
 The rx code is mainly based on midelic from rcgroups, see http://www.rcgroups.com/forums/showthread.php?t=1921870
 
-For now 6 channels can be used, but it can be easily extended to 8 (defined in defs.h).
+8 channels can be used.
 
 You may need to erase full ship as the transmitter id is stored into flash.
 

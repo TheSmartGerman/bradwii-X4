@@ -134,7 +134,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define GPS_TYPE NO_GPS
 #endif
 
+#ifdef FLYSKY_TX
+#define RXNUMCHANNELS 8 
+#else
 #define RXNUMCHANNELS 6 
+#endif
 
 #ifndef ARMED_MIN_MOTOR_OUTPUT
 #define ARMED_MIN_MOTOR_OUTPUT 1020     // motors spin slowly when armed
