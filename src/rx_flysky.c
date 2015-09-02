@@ -80,6 +80,7 @@ static uint8_t channel;
 extern globalstruct global;
 extern usersettingsstruct usersettings;
 
+#define BIND_READ_TOGGLE_TIMEOUT 1000000
 
 
 void Read_Packet(void);
@@ -87,12 +88,13 @@ void init_channels(void);
 int _readrx(void);
 //BIND_TX
 uint32_t bind_Flysky() {
+	unsigned long timeout_timer=lib_timers_starttimer();
 	uint32_t _id=0;
 	// set channel 0;
 	A7105_Strobe(0xA0);
 	A7105_WriteRegister(A7105_0F_PLL_I,00);
 	A7105_Strobe(A7105_RX);
-	while(!_id)
+	while(!_id && lib_timers_gettimermicroseconds(timeout_timer) < BIND_READ_TOGGLE_TIMEOUT)
 	{
 	if( lib_timers_gettimermicroseconds(0) % 524288 > 262144)
             leds_set(LED2 | LED4);
@@ -176,19 +178,42 @@ void init_a7105(void) {
 		A7105_Strobe(A7105_STANDBY);	//stand-by
 }
 
+#define READ_STATE 1
+#define BIND_STATE 2
+#define DONE 0
+
 void bind() {
-	if (usersettings.flysky_id==0) {
+	/* if no id found, bind */
+	while (usersettings.flysky_id==0) {
 		usersettings.flysky_id=bind_Flysky();
-	} else {
-		init_channels();
-	
-	  while (!_readrx()) {
-		  if( lib_timers_gettimermicroseconds(0) % 500000 > 250000)
-        leds_set(LED1 | LED5);
-      else
-        leds_set(LED2 | LED6);
-	  }
-  }
+	} 
+	/* if id found toggle read and bind until one frame is readed */
+	/* in that way, it possible to bind with an other TX even if one tx id is already registered */
+	uint8_t state=READ_STATE;
+	while (state!=DONE) {
+		unsigned long timeout_timer=lib_timers_starttimer();
+		if (state==READ_STATE) {
+			init_channels();
+			if (_readrx()) state=DONE;
+			while (state==READ_STATE && lib_timers_gettimermicroseconds(timeout_timer) < BIND_READ_TOGGLE_TIMEOUT) {
+				if( lib_timers_gettimermicroseconds(0) % 500000 > 250000)
+					leds_set(LED1 | LED5);
+				else
+					leds_set(LED2 | LED6);
+				if (_readrx()) state=DONE;
+			}
+			if (state==READ_STATE) {
+				state=BIND_STATE;
+			}
+		}
+		if (state==BIND_STATE) {
+			uint32_t _id=bind_Flysky();
+			if (_id) {
+				usersettings.flysky_id=_id;
+			}
+			state=READ_STATE;
+		}
+	}
 }
 
 void initrx(void) {

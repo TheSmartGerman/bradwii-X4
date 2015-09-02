@@ -26,7 +26,8 @@ Channel order : ROLL, PITCH, THROTTLE, YAW
 As transmitter id is stored into flash, you don't need to bind every times, if any id is stored, it will wait for
 any frame from the transmitter before the calibration start.
 
-So you can't use an other transmitter unless you perfom a full ship erase.
+Rebind : even if your hubsan is already know the transmiter id, it possible to bind it with an other transmiter. At startup it alternatively
+wait for know TX frame (red leds blinking) and wait for bind frame (blue leds blinking).
 
 
 #### The H107L uses the following hardware
