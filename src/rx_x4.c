@@ -238,6 +238,8 @@ void bind()
     for(int i=0;i<4;i++){
         txid[i]=packet[i+11];
     }
+		
+    global.failsafetimer = lib_timers_starttimer();
 }
 
 void initrx(void)
