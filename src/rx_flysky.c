@@ -177,25 +177,25 @@ void init_a7105(void) {
 }
 
 void bind() {
-	bind_Flysky();
+	if (usersettings.flysky_id==0) {
+		usersettings.flysky_id=bind_Flysky();
+	} else {
+		init_channels();
+	
+	  while (!_readrx()) {
+		  if( lib_timers_gettimermicroseconds(0) % 500000 > 250000)
+        leds_set(LED1 | LED5);
+      else
+        leds_set(LED2 | LED6);
+	  }
+  }
 }
 
 void initrx(void) {
 
 	lib_soft_3_wire_spi_init(A7105_SDIO, A7105_SCK, A7105_SCS);
 	init_a7105();
-	if (usersettings.flysky_id==0) {
-		usersettings.flysky_id=bind_Flysky();
-	}
-	init_channels();
-	
-	while (!_readrx()) {
-		 if( lib_timers_gettimermicroseconds(0) % 500000 > 250000)
-        leds_set(LED1 | LED5);
-     else
-        leds_set(LED2 | LED6);
-
-	}
+	bind();
 }
 
 
