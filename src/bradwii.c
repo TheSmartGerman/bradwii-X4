@@ -938,6 +938,7 @@ static void detectstickcommand(void) {
             // Save in EEPROM
             writeusersettingstoeeprom();
             lastrollstickstate = STICK_STATE_START;
+            rollmovecounter=0;
         }
     } // if throttle low
 } // checkforstickcommand()
