@@ -930,6 +930,7 @@ static void detectstickcommand(void) {
         if(lib_timers_gettimermicroseconds(stickcommandtimer) > 1000000L) {
             // Timeout: last detected stick movement was more than 1 second ago.
             lastrollstickstate = STICK_STATE_START;
+            rollmovecounter=0;
         }
 
         if(rollmovecounter == 6) {
