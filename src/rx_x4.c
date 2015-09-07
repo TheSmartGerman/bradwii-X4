@@ -128,14 +128,40 @@ void strobeTXRX(void)
 
 void hubsan_send_voltage()
 {
-    packet[0] = 0xe1;  //Its Telemetry
+	static uint8_t e=0;
+	if (e==0) {
+	  packet[0] = 0xe0;  //Its Telemetry
+		for (int i=1;i<13;i++) packet[i]=0xFF;
+	// gyro 
+		for (int i=0;i<3;i++) {
+			packet[7+(2*i)]=global.gyrorate[i] / (2000L << (FIXEDPOINTSHIFT - 15)) >> 8 ;
+			packet[8+(2*i)]=global.gyrorate[i] / (2000L << (FIXEDPOINTSHIFT - 15));
+		}
     packet[13] = (global.batteryvoltage * 10) >> 16;   //Voltage, comp intensive?
     update_crc();
-    for (int l =0; l<4; l++)  //Have to send 4 packets.
-    {    A7105_WritePayload((uint8_t*)&packet, sizeof(packet));
-         A7105_Strobe(A7105_TX);
-    }
+    A7105_Strobe(A7105_STANDBY);
+    A7105_WritePayload((uint8_t*)&packet, sizeof(packet));
+    A7105_Strobe(A7105_TX);
+	  waitTRXCompletion();
     A7105_Strobe(A7105_RX);
+		e=1;
+	} else {
+    packet[0] = 0xe1;  //Its Telemetry
+		for (int i=1;i<13;i++) packet[i]=0xFF;
+	// acc 
+		for (int i=0;i<3;i++) {
+			packet[7+(2*i)]=global.acc_g_vector[i] >> (6+8);
+			packet[8+(2*i)]=global.acc_g_vector[i] >> (6);
+		}
+    packet[13] = (global.batteryvoltage * 10) >> 16;   //Voltage, comp intensive?
+    update_crc();
+    A7105_Strobe(A7105_STANDBY);
+    A7105_WritePayload((uint8_t*)&packet, sizeof(packet));
+    A7105_Strobe(A7105_TX);
+	  waitTRXCompletion();
+    A7105_Strobe(A7105_RX);
+		e=0;
+	}
 }
 
 void bind() 
