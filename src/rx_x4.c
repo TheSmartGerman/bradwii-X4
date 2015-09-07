@@ -277,18 +277,23 @@ void initrx(void)
     A7105_Strobe(A7105_RX);
 }
 
+void rx_lib_fp_lowpassfilter(fixedpointnum *variable, fixedpointnum newvalue, fixedpointnum timesliver, fixedpointnum oneoverperiod, int timesliverextrashift)
+{
+    *variable = newvalue;
+}
+
 void decodepacket()
 {
     if(packet[0]==0x20) {
         // converts [0;255] to [-1;1] fixed point num
-        lib_fp_lowpassfilter(&global.rxvalues[THROTTLEINDEX], ((fixedpointnum) packet[2] - 0x80) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
-        lib_fp_lowpassfilter(&global.rxvalues[YAWINDEX], ((fixedpointnum) packet[4] - 0x80) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
-        lib_fp_lowpassfilter(&global.rxvalues[PITCHINDEX], ((fixedpointnum) 0x80 - packet[6]) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
-        lib_fp_lowpassfilter(&global.rxvalues[ROLLINDEX], ((fixedpointnum) 0x80 - packet[8]) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[THROTTLEINDEX], ((fixedpointnum) packet[2] - 0x80) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[YAWINDEX], ((fixedpointnum) packet[4] - 0x80) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[PITCHINDEX], ((fixedpointnum) 0x80 - packet[6]) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[ROLLINDEX], ((fixedpointnum) 0x80 - packet[8]) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
         // "LEDs" channel, AUX1 (only on H107L, H107C, H107D and Deviation TXs, high by default)
-        lib_fp_lowpassfilter(&global.rxvalues[AUX1INDEX], ((fixedpointnum) (packet[9] & AUX1_FLAG ? 0x7F : -0x7F)) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[AUX1INDEX], ((fixedpointnum) (packet[9] & AUX1_FLAG ? 0x7F : -0x7F)) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
         // "Flip" channel, AUX2 (only on H107L, H107C, H107D and Deviation TXs, high by default)
-        lib_fp_lowpassfilter(&global.rxvalues[AUX2INDEX], ((fixedpointnum) (packet[9] & AUX2_FLAG ? 0x7F : -0x7F)) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[AUX2INDEX], ((fixedpointnum) (packet[9] & AUX2_FLAG ? 0x7F : -0x7F)) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
     }
 }
 
