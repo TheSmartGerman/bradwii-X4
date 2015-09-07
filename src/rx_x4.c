@@ -113,7 +113,7 @@ void init_a7105(void)
 void waitTRXCompletion(void)
 {
     while(( A7105_ReadRegister(A7105_00_MODE) & A7105_MODE_TRER_MASK)) 
-        if (packet[2] ==1) break; //throttle is high
+       ;
 }
 
 void strobeTXRX(void)
