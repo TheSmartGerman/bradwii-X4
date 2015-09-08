@@ -25,6 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "config_X4.h"
 #include "leds.h"
 
+extern usersettingsstruct usersettings;
+
 #if CONTROL_BOARD_TYPE == CONTROL_BOARD_HUBSAN_H107L
 #define A7105_SCS   (DIGITALPORT1 | 4)
 #define A7105_SCK   (DIGITALPORT1 | 3)
@@ -126,17 +128,34 @@ void strobeTXRX(void)
     A7105_Strobe(A7105_RST_RDPTR);
 }
 
+
+enum TelemetryFrame {
+	GYRO,
+	ACC,
+#ifdef HUBSAN_EXTENDED_PROTOCOL
+  PID,
+#endif
+	LAST
+};
 void hubsan_send_voltage()
 {
-	static uint8_t e=0;
-	if (e==0) {
+	static uint8_t e=GYRO;
+	if (e==LAST) e=GYRO;
+	switch (e) {
+		case GYRO :
 	  packet[0] = 0xe0;  //Its Telemetry
 		for (int i=1;i<13;i++) packet[i]=0xFF;
 	// gyro 
-		for (int i=0;i<3;i++) {
-			packet[7+(2*i)]=global.gyrorate[i] / (2000L << (FIXEDPOINTSHIFT - 15)) >> 8 ;
-			packet[8+(2*i)]=global.gyrorate[i] / (2000L << (FIXEDPOINTSHIFT - 15));
-		}
+		// pitch
+		packet[7]=global.gyrorate[1] / (2000L << (FIXEDPOINTSHIFT - 15)) >> 8 ;
+		packet[8]=global.gyrorate[1] / (2000L << (FIXEDPOINTSHIFT - 15));
+		//roll
+		packet[9]=-global.gyrorate[0] / (2000L << (FIXEDPOINTSHIFT - 15)) >> 8 ;
+		packet[10]=-global.gyrorate[0] / (2000L << (FIXEDPOINTSHIFT - 15));
+		//yaw
+		packet[11]=global.gyrorate[2] / (2000L << (FIXEDPOINTSHIFT - 15)) >> 8 ;
+		packet[12]=global.gyrorate[2] / (2000L << (FIXEDPOINTSHIFT - 15));
+
     packet[13] = (global.batteryvoltage * 10) >> 16;   //Voltage, comp intensive?
     update_crc();
     A7105_Strobe(A7105_STANDBY);
@@ -144,15 +163,19 @@ void hubsan_send_voltage()
     A7105_Strobe(A7105_TX);
 	  waitTRXCompletion();
     A7105_Strobe(A7105_RX);
-		e=1;
-	} else {
+		break;
+		case ACC:
     packet[0] = 0xe1;  //Its Telemetry
 		for (int i=1;i<13;i++) packet[i]=0xFF;
 	// acc 
-		for (int i=0;i<3;i++) {
-			packet[7+(2*i)]=global.acc_g_vector[i] >> (6+8);
-			packet[8+(2*i)]=global.acc_g_vector[i] >> (6);
-		}
+		
+		packet[7]=global.acc_g_vector[1] >> (6+8);
+		packet[8]=global.acc_g_vector[1] >> (6);
+		packet[9]=-global.acc_g_vector[0] >> (6+8);
+		packet[10]=-global.acc_g_vector[0] >> (6);
+		packet[11]=global.acc_g_vector[2] >> (6+8);
+		packet[12]=global.acc_g_vector[2] >> (6);
+
     packet[13] = (global.batteryvoltage * 10) >> 16;   //Voltage, comp intensive?
     update_crc();
     A7105_Strobe(A7105_STANDBY);
@@ -160,8 +183,30 @@ void hubsan_send_voltage()
     A7105_Strobe(A7105_TX);
 	  waitTRXCompletion();
     A7105_Strobe(A7105_RX);
-		e=0;
+		break;
+#ifdef HUBSAN_EXTENDED_PROTOCOL
+		case PID:
+			    packet[0] = 0xe3;  //Its Telemetry
+		for (int i=1;i<13;i++) packet[i]=0xFF;
+		
+		for (int i=0; i<3;i++) {
+			packet[1+i*3]=usersettings.pid_pgain[i]/8;       // The various PID p gains
+			packet[2+i*3]=usersettings.pid_igain[i];       // The various PID p gains
+			packet[3+i*3]=usersettings.pid_dgain[i]>>2;       // The various PID p gains
+		//	fixedpointnum pid_igain[NUMPIDITEMS];       // The various PID i gains
+		//	fixedpointnum pid_dgain[NUMPIDITEMS]; 
+		}
+
+    packet[13] = (global.batteryvoltage * 10) >> 16;   //Voltage, comp intensive?
+    update_crc();
+    A7105_Strobe(A7105_STANDBY);
+    A7105_WritePayload((uint8_t*)&packet, sizeof(packet));
+    A7105_Strobe(A7105_TX);
+	  waitTRXCompletion();
+    A7105_Strobe(A7105_RX);
+#endif		
 	}
+	e++;
 }
 
 void bind() 
