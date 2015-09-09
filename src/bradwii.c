@@ -940,6 +940,8 @@ static void detectstickcommand(void) {
             writeusersettingstoeeprom();
             lastrollstickstate = STICK_STATE_START;
             rollmovecounter=0;
+            // reset failsafe to prevent wrong activation (calibration take time)
+            global.failsafetimer = lib_timers_starttimer();
         }
     } // if throttle low
 } // checkforstickcommand()
