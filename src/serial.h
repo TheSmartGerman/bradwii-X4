@@ -19,7 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 void serialinit(void);
 void serialcheckforaction(void);
-
+#if (MULTIWII_CONFIG_SERIAL_PORTS!=NOSERIALPORT) || defined(DEBUGPORT)
+void serialprintfixedpoint_no_linebreak(char, fixedpointnum);
+#endif
 // Multiwii Serial Protocol 0 
 #define MSP_VERSION             0
 

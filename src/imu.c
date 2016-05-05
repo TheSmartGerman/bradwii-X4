@@ -107,10 +107,10 @@ void calibrategyroandaccelerometer(bool both)
             leds_set(LED2); // X4_LED_FR
             break;
         case 2:
-            leds_set(LED5); // X4_LED_RR
+            leds_set(LED3); // X4_LED_RR
             break;
         case 3:
-            leds_set(LED6); // X4_LED_RL
+            leds_set(LED4); // X4_LED_RL
             break;
         }
 #else

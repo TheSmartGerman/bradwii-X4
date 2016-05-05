@@ -25,9 +25,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "config_X4.h"
 #include "leds.h"
 
+#if CONTROL_BOARD_TYPE == CONTROL_BOARD_HUBSAN_H107L
 #define A7105_SCS   (DIGITALPORT1 | 4)
 #define A7105_SCK   (DIGITALPORT1 | 3)
 #define A7105_SDIO  (DIGITALPORT1 | 2)
+#endif
+
+#if CONTROL_BOARD_TYPE == CONTROL_BOARD_HUBSAN_Q4
+#define A7105_SCS   (DIGITALPORT1 | 2)
+#define A7105_SCK   (DIGITALPORT1 | 0)
+#define A7105_SDIO  (DIGITALPORT5 | 3)
+#endif
 
 #define AUX1_FLAG   0x04 
 #define AUX2_FLAG   0x08 
@@ -117,9 +125,9 @@ void bind()
     while(1){
 			
         if( lib_timers_gettimermicroseconds(0) % 500000 > 250000)
-            leds_set(LED1 | LED5);
+            leds_set(LED1 | LED3);
         else
-            leds_set(LED2 | LED6);
+            leds_set(LED2 | LED4);
 
         A7105_Strobe(A7105_STANDBY);
         channel=allowed_ch[chan];

@@ -61,18 +61,6 @@ m
 
 */
 
-// library headers
-#include "hal.h"
-#include "lib_timers.h"
-#if (MULTIWII_CONFIG_SERIAL_PORTS != NOSERIALPORT)
-#include "lib_serial.h"
-#endif
-#include "lib_i2c.h"
-#include "lib_digitalio.h"
-#include "lib_fp.h"
-#if (BATTERY_ADC_CHANNEL != NO_ADC)
-#include "lib_adc.h"
-#endif
 
 // project file headers
 #include "bradwii.h"
@@ -90,6 +78,19 @@ m
 #include "pilotcontrol.h"
 #include "autotune.h"
 #include "leds.h"
+
+// library headers
+#include "hal.h"
+#include "lib_timers.h"
+#if (MULTIWII_CONFIG_SERIAL_PORTS != NOSERIALPORT) || (DEBUGPORT == 6)
+#include "lib_serial.h"
+#endif
+#include "lib_i2c.h"
+#include "lib_digitalio.h"
+#include "lib_fp.h"
+#if (BATTERY_ADC_CHANNEL != NO_ADC)
+#include "lib_adc.h"
+#endif
 
 // Data type for stick movement detection to execute accelerometer calibration
 typedef enum stickstate_tag {
@@ -133,7 +134,7 @@ static void detectstickcommand(void);
 // It all starts here:
 int main(void)
 {
-	
+
 #if (BATTERY_ADC_CHANNEL != NO_ADC)
     // Static to keep it off the stack
     static bool isbatterylow;         // Set to true while voltage is below limit
@@ -172,12 +173,15 @@ int main(void)
     
     // try to load usersettings from eeprom
     readusersettingsfromeeprom();
+lib_serial_sendstring(DEBUGPORT, "LOAD_EEP\n");
 
     if(!global.usersettingsfromeeprom) {
+lib_serial_sendstring(DEBUGPORT, "BLANK_EEP\n");
 			// If nothing found in EEPROM (= data flash on Mini51)
 			// use default settings.
 			// start with default user settings in case there's nothing in eeprom
 			defaultusersettings();
+writeusersettingstoeeprom();
 		
 			// Indicate that default settings are used
 			leds_blink_cycles(LED1, 100, 100, 10);
@@ -220,13 +224,37 @@ int main(void)
 		initimu();
 		
 #if 0
-lib_serial_sendstring(0, "PID P=");
+lib_serial_sendstring(DEBUGPORT, "PID P=");
 serialprintfixedpoint_no_linebreak(0, usersettings.pid_pgain[PITCHINDEX]); 
-lib_serial_sendstring(0, " I=");
+lib_serial_sendstring(DEBUGPORT, " I=");
 serialprintfixedpoint_no_linebreak(0, usersettings.pid_igain[PITCHINDEX]);
-lib_serial_sendstring(0, " D=");
+lib_serial_sendstring(DEBUGPORT, " D=");
 serialprintfixedpoint_no_linebreak(0, usersettings.pid_dgain[PITCHINDEX]);
-lib_serial_sendstring(0, "\r\n");
+lib_serial_sendstring(DEBUGPORT, "\r\n");
+#endif
+
+#if 0
+#warning REMOVE_BEFORE_FLIGHT
+
+lib_serial_sendstring(DEBUGPORT, "PTC P=");
+serialprintfixedpoint_no_linebreak(DEBUGPORT, (usersettings.pid_pgain[PITCHINDEX]<<13)/10+1);
+lib_serial_sendstring(DEBUGPORT, " I=");
+serialprintfixedpoint_no_linebreak(DEBUGPORT, (usersettings.pid_igain[PITCHINDEX]<<16)/1000+1);
+lib_serial_sendstring(DEBUGPORT, " D=");
+serialprintfixedpoint_no_linebreak(DEBUGPORT, (usersettings.pid_dgain[PITCHINDEX]<<14)+1);
+lib_serial_sendstring(DEBUGPORT, "\nROL P=");
+serialprintfixedpoint_no_linebreak(DEBUGPORT, (usersettings.pid_pgain[ROLLINDEX]<<13)/10+1);
+lib_serial_sendstring(DEBUGPORT, " I=");
+serialprintfixedpoint_no_linebreak(DEBUGPORT, (usersettings.pid_igain[ROLLINDEX]<<16)/1000+1);
+lib_serial_sendstring(DEBUGPORT, " D=");
+serialprintfixedpoint_no_linebreak(DEBUGPORT, (usersettings.pid_dgain[ROLLINDEX]<<14)+1);
+lib_serial_sendstring(DEBUGPORT, "\nYAW P=");
+serialprintfixedpoint_no_linebreak(DEBUGPORT, (usersettings.pid_pgain[YAWINDEX]<<13)/10+1);
+lib_serial_sendstring(DEBUGPORT, " I=");
+serialprintfixedpoint_no_linebreak(DEBUGPORT, (usersettings.pid_igain[YAWINDEX]<<16)/1000+1);
+lib_serial_sendstring(DEBUGPORT, " D=");
+serialprintfixedpoint_no_linebreak(DEBUGPORT, (usersettings.pid_dgain[YAWINDEX]<<14)+1);
+lib_serial_sendstring(DEBUGPORT, "\n");
 #endif
 
 #if (BATTERY_ADC_CHANNEL != NO_ADC)
@@ -258,14 +286,14 @@ lib_serial_sendstring(0, "\r\n");
 		}
 		batteryvoltageraw = lib_adc_read_raw();
 		
-		lib_serial_sendstring(0, "POWER ON ADC MEASURMENTS:================\r\n");
-		lib_serial_sendstring(0, "BANDGAP=");
+		lib_serial_sendstring(DEBUGPORT, "POWER ON ADC MEASURMENTS:================\r\n");
+		lib_serial_sendstring(DEBUGPORT, "BANDGAP=");
 		serialprintfixedpoint_no_linebreak(0, initialbandgapvoltage);
-		lib_serial_sendstring(0, "\r\nBGAPVOLTAGERAW=");
+		lib_serial_sendstring(DEBUGPORT, "\r\nBGAPVOLTAGERAW=");
 		serialprintfixedpoint_no_linebreak(0, bandgapvoltageraw);
-		lib_serial_sendstring(0, "\r\nBATTERY RAW=");
+		lib_serial_sendstring(DEBUGPORT, "\r\nBATTERY RAW=");
 		serialprintfixedpoint_no_linebreak(0, batteryvoltageraw);
-		lib_serial_sendstring(0, "=========================================\r\n");
+		lib_serial_sendstring(DEBUGPORT, "=========================================\r\n");
 		lib_timers_delaymilliseconds(2000);
 	#endif
 #endif
@@ -285,7 +313,7 @@ lib_serial_sendstring(0, "\r\n");
 			char x = lib_serial_numcharsavailable(0);
 			//lib_serial_sendchar(0, '0'+x);
 			if (x != 0){
-				lib_serial_sendstring(0, "POWER ON ADC MEASURMENTS:================\r\n");
+				lib_serial_sendstring(DEBUGPORT, "POWER ON ADC MEASURMENTS:================\r\n");
 			  unsigned char c = lib_serial_getchar(0);
 				lib_serial_sendchar(0, c);
 				lib_serial_sendchar(0, '\r');
@@ -322,14 +350,17 @@ lib_serial_sendstring(0, "\r\n");
                     global.heading_when_armed = global.currentestimatedeulerattitude[YAWINDEX];
                     global.altitude_when_armed = global.barorawaltitude;
                 }
-            } else if (!(global.activecheckboxitems & CHECKBOXMASKARM))
+            } else if (!(global.activecheckboxitems & CHECKBOXMASKARM)) {
                 global.armed = 0;
+			}
         } // if throttle low
 
         if(!global.armed) {
             // Not armed: check if there is a stick command to execute.
             detectstickcommand();
+
         }
+
 
 #if (GPS_TYPE!=NO_GPS)
         // turn on or off navigation when appropriate
@@ -361,7 +392,7 @@ lib_serial_sendstring(0, "\r\n");
 	        // turn on the LED when we are stable and the gps has 5 satellites or more
 #if (GPS_TYPE==NO_GPS)
 #if (GPS_LED != NONE)
-				leds_set(((global.stable == 0) ? (!GPS_LED) : GPS_LED));
+	leds_set(((global.stable == 0) ? (!GPS_LED) : GPS_LED));
 #endif
 #else
 #if (LED_GPS != NONE)				
@@ -398,12 +429,20 @@ lib_serial_sendstring(0, "\r\n");
 #ifndef NO_AUTOTUNE
         // let autotune adjust the angle error if the pilot has autotune turned on
         if (global.activecheckboxitems & CHECKBOXMASKAUTOTUNE) {
-            if (!(global.previousactivecheckboxitems & CHECKBOXMASKAUTOTUNE))
+            if (!(global.previousactivecheckboxitems & CHECKBOXMASKAUTOTUNE)) {
                 autotune(angleerror, AUTOTUNESTARTING); // tell autotune that we just started autotuning
+#if defined(DEBUGPORT)
+			lib_serial_sendstring(DEBUGPORT, "AT START\n");
+#endif
+		}
             else
                 autotune(angleerror, AUTOTUNETUNING);   // tell autotune that we are in the middle of autotuning
-        } else if (global.previousactivecheckboxitems & CHECKBOXMASKAUTOTUNE)
+        } else if (global.previousactivecheckboxitems & CHECKBOXMASKAUTOTUNE) {
+#if defined(DEBUGPORT)
+			lib_serial_sendstring(DEBUGPORT, "AT STOP\n");
+#endif
             autotune(angleerror, AUTOTUNESTOPPING);     // tell autotune that we just stopped autotuning
+	}
 #endif
 
         // get the pilot's throttle component
@@ -565,7 +604,8 @@ lib_serial_sendstring(0, "\r\n");
             pidoutput[x] = lib_fp_multiply(gainschedulingmultiplier, pidoutput[x]);
         }
 
-#if (CONTROL_BOARD_TYPE == CONTROL_BOARD_HUBSAN_H107L)
+#if (CONTROL_BOARD_TYPE == CONTROL_BOARD_HUBSAN_H107L) || (CONTROL_BOARD_TYPE == CONTROL_BOARD_HUBSAN_Q4)
+
 		// On Hubsan X4 H107L the front right motor
 		// rotates clockwise (viewed from top).
 		// On the J385 the motors spin in the opposite direction.
@@ -627,13 +667,13 @@ lib_serial_sendstring(0, "\r\n");
 								lib_fp_lowpassfilter(&(global.batteryvoltage), batteryvoltage, global.timesliver, FIXEDPOINTONEOVERONEFOURTH, TIMESLIVEREXTRASHIFT);	
 
 #if (BATTERY_ADC_DEBUG)
-	lib_serial_sendstring(0, "\r\nBANDGAP=");
+	lib_serial_sendstring(DEBUGPORT, "\r\nBANDGAP=");
 	serialprintfixedpoint_no_linebreak(0, bandgapvoltageraw);
-	lib_serial_sendstring(0, " BATTERY RAW=");
+	lib_serial_sendstring(DEBUGPORT, " BATTERY RAW=");
 	serialprintfixedpoint_no_linebreak(0, batteryvoltageraw);
-	lib_serial_sendstring(0, " BATTERY=");
+	lib_serial_sendstring(DEBUGPORT, " BATTERY=");
 	serialprintfixedpoint_no_linebreak(0, batteryvoltage);
-	lib_serial_sendstring(0, " FILTERED BAT=");
+	lib_serial_sendstring(DEBUGPORT, " FILTERED BAT=");
 	serialprintfixedpoint_no_linebreak(0, global.batteryvoltage);
 #endif							
 								
@@ -675,10 +715,10 @@ lib_serial_sendstring(0, "\r\n");
             // Lost contact with TX
             // Blink LEDs fast alternating
 						leds_blink_continuous(LED_ALL, 125, 125);
-						//lib_serial_sendstring(0, "isfailsafeactive true\r\n");
+						//lib_serial_sendstring(DEBUGPORT, "isfailsafeactive true\r\n");
         }
         else if(!global.armed) {
-					  //lib_serial_sendstring(0, "isfailsafeactive false\r\n");
+					  //lib_serial_sendstring(DEBUGPORT, "isfailsafeactive false\r\n");
 
             // Not armed
             // Short blinks
@@ -771,22 +811,22 @@ void defaultusersettings(void)
 #ifdef USERSETTINGS_PID_PGAIN_ALTITUDEINDEX		
     usersettings.pid_pgain[ALTITUDEINDEX] = USERSETTINGS_PID_PGAIN_ALTITUDEINDEX;
 #else
-		usersettings.pid_pgain[ALTITUDEINDEX] = PID_TO_CONFIGURATORVALUE_ALT_P(2.7) // 2.7 on configurator
+		usersettings.pid_pgain[ALTITUDEINDEX] = PID_TO_CONFIGURATORVALUE_ALT_P(2.7); // 2.7 on configurator
 #endif
 		
 #ifdef USERSETTINGS_PID_DGAIN_ALTITUDEINDEX		
     usersettings.pid_dgain[ALTITUDEINDEX] = USERSETTINGS_PID_DGAIN_ALTITUDEINDEX;    		
 #else
-		usersettings.pid_dgain[ALTITUDEINDEX] = PID_TO_CONFIGURATORVALUE_ALT_D(6.0) // 6 on configurator
+		usersettings.pid_dgain[ALTITUDEINDEX] = PID_TO_CONFIGURATORVALUE_ALT_D(6.0); // 6 on configurator
 #endif
 
 #ifdef USERSETTINGS_PID_PGAIN_NAVIGATIONINDEX
     usersettings.pid_pgain[NAVIGATIONINDEX] = USERSETTINGS_PID_PGAIN_NAVIGATIONINDEX;   
 #else
-		usersettings.pid_pgain[NAVIGATIONINDEX] = PID_TO_CONFIGURATORVALUE_NAV_P(2.5) // 2.5 on configurator
+		usersettings.pid_pgain[NAVIGATIONINDEX] = PID_TO_CONFIGURATORVALUE_NAV_P(2.5); // 2.5 on configurator
 #endif
 		
-#ifdef USERSETTINGS_PID_DAGIN_NAVIGATIONINDEX	
+#ifdef USERSETTINGS_PID_DGAIN_NAVIGATIONINDEX	
     usersettings.pid_dgain[NAVIGATIONINDEX] = USERSETTINGS_PID_DGAIN_NAVIGATIONINDEX;   
 #else
 	usersettings.pid_dgain[NAVIGATIONINDEX] = PID_TO_CONFIGURATORVALUE_NAV_D(0.188); // .188 on configurator
