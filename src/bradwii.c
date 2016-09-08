@@ -136,7 +136,9 @@ int main(void)
 	
 #if (BATTERY_ADC_CHANNEL != NO_ADC)
     // Static to keep it off the stack
-    static bool isbatterylow;         // Set to true while voltage is below limit
+	
+		#warning "ADC1"
+            
     static bool isadcchannelref;      // Set to true if the next ADC result is reference channel
     // Current unfiltered battery voltage [V]. Filtered value is in global.batteryvoltage
     static fixedpointnum batteryvoltage;
@@ -156,6 +158,12 @@ int main(void)
 #endif
 	
     static bool isfailsafeactive;     // true while we don't get new data from transmitter
+		
+		// Set to true while voltage is below limit
+		static bool isbatterylow  = false;	// initialize battery low false, even if battery is not used
+		
+		// 
+		unsigned char led_status = LED_STATUS;
 		
     // initialize hardware
 		lib_hal_init();
@@ -182,7 +190,6 @@ int main(void)
 			// Indicate that default settings are used
 			leds_blink_cycles(LED1, 100, 100, 10);
     }
-
 	
     // pause a moment before initializing everything. To make sure everything is powered up
     lib_timers_delaymilliseconds(100); 
@@ -191,6 +198,7 @@ int main(void)
     initrx();
 		
 #if (BATTERY_ADC_CHANNEL != NO_ADC)
+		#warning "ADC_INIT"
     // Give the battery voltage lowpass filter a reasonable starting point.
     global.batteryvoltage = FP_BATTERY_UNDERVOLTAGE_LIMIT;
     lib_adc_init();  // For battery voltage
@@ -219,16 +227,6 @@ int main(void)
     
 		initimu();
 		
-#if 0
-lib_serial_sendstring(0, "PID P=");
-serialprintfixedpoint_no_linebreak(0, usersettings.pid_pgain[PITCHINDEX]); 
-lib_serial_sendstring(0, " I=");
-serialprintfixedpoint_no_linebreak(0, usersettings.pid_igain[PITCHINDEX]);
-lib_serial_sendstring(0, " D=");
-serialprintfixedpoint_no_linebreak(0, usersettings.pid_dgain[PITCHINDEX]);
-lib_serial_sendstring(0, "\r\n");
-#endif
-
 #if (BATTERY_ADC_CHANNEL != NO_ADC)
 		// Measure internal bandgap voltage now.
     // Battery is probably full and there is no load,
@@ -237,7 +235,9 @@ lib_serial_sendstring(0, "\r\n");
     lib_adc_select_channel(LIB_ADC_CHANREF);
     initialbandgapvoltage = 0;
 		batterylowtimer  = 0;		
-    isbatterylow = false;	
+		
+		#warning "ADC3"
+    
 		
     // Take average of 8 measurements
     for(int i=0;i<8;i++) {
@@ -251,23 +251,9 @@ lib_serial_sendstring(0, "\r\n");
     // Start first battery voltage measurement
     isadcchannelref = false;
     //lib_adc_select_channel(adc_bat_channel);
-		lib_adc_select_channel(BATTERY_ADC_CHANNEL);
+		lib_adc_select_channel(LIB_ADC_CHAN2);
     lib_adc_startconv();
-		#if (BATTERY_ADC_DEBUG)
-		while(lib_adc_is_busy()){
-		}
-		batteryvoltageraw = lib_adc_read_raw();
 		
-		lib_serial_sendstring(0, "POWER ON ADC MEASURMENTS:================\r\n");
-		lib_serial_sendstring(0, "BANDGAP=");
-		serialprintfixedpoint_no_linebreak(0, initialbandgapvoltage);
-		lib_serial_sendstring(0, "\r\nBGAPVOLTAGERAW=");
-		serialprintfixedpoint_no_linebreak(0, bandgapvoltageraw);
-		lib_serial_sendstring(0, "\r\nBATTERY RAW=");
-		serialprintfixedpoint_no_linebreak(0, batteryvoltageraw);
-		lib_serial_sendstring(0, "=========================================\r\n");
-		lib_timers_delaymilliseconds(2000);
-	#endif
 #endif
     // set the default i2c speed to 400 kHz.  If a device needs to slow it down, it can, but it should set it back.
     lib_i2c_setclockspeed(I2C_400_KHZ);
@@ -275,28 +261,7 @@ lib_serial_sendstring(0, "\r\n");
     global.armed = 0;
     global.navigationmode = NAVIGATIONMODEOFF;
     global.failsafetimer = lib_timers_starttimer();
-		
-
-		/*
-		//testcode to see if uart works
-		unsigned int led_state = 0;
-		for (;;) {
-			//lib_serial_sendchar(0, 'H');
-			char x = lib_serial_numcharsavailable(0);
-			//lib_serial_sendchar(0, '0'+x);
-			if (x != 0){
-				lib_serial_sendstring(0, "POWER ON ADC MEASURMENTS:================\r\n");
-			  unsigned char c = lib_serial_getchar(0);
-				lib_serial_sendchar(0, c);
-				lib_serial_sendchar(0, '\r');
-				lib_serial_sendchar(0, '\n');
-			}
-			leds_set(led_state);
-			led_state = 0xFF-led_state;
-			lib_timers_delaymilliseconds(1);
-		}
-		*/
-		
+			
     for (;;) {
 
         // check to see what switches are activated
@@ -604,7 +569,7 @@ lib_serial_sendstring(0, "\r\n");
                 bandgapvoltageraw = lib_adc_read_raw();
                 isadcchannelref = false;
                 //lib_adc_select_channel(adc_bat_channel);
-								lib_adc_select_channel(BATTERY_ADC_CHANNEL);
+								lib_adc_select_channel(LIB_ADC_CHAN2);
             } else {
 								//raw voltage is 0.0-1.0 (min to max adc )
                 batteryvoltageraw = lib_adc_read_raw();
@@ -624,18 +589,7 @@ lib_serial_sendstring(0, "\r\n");
                 // Use constant FIXEDPOINTONEOVERONEFOURTH instead of FIXEDPOINTONEOVERONEHALF
                 // Because we call this only every other iteration.
                 // (...alternatively multiply global.timesliver by two).      
-								lib_fp_lowpassfilter(&(global.batteryvoltage), batteryvoltage, global.timesliver, FIXEDPOINTONEOVERONEFOURTH, TIMESLIVEREXTRASHIFT);	
-
-#if (BATTERY_ADC_DEBUG)
-	lib_serial_sendstring(0, "\r\nBANDGAP=");
-	serialprintfixedpoint_no_linebreak(0, bandgapvoltageraw);
-	lib_serial_sendstring(0, " BATTERY RAW=");
-	serialprintfixedpoint_no_linebreak(0, batteryvoltageraw);
-	lib_serial_sendstring(0, " BATTERY=");
-	serialprintfixedpoint_no_linebreak(0, batteryvoltage);
-	lib_serial_sendstring(0, " FILTERED BAT=");
-	serialprintfixedpoint_no_linebreak(0, global.batteryvoltage);
-#endif							
+								lib_fp_lowpassfilter(&(global.batteryvoltage), batteryvoltage, global.timesliver, FIXEDPOINTONEOVERONEFOURTH, TIMESLIVEREXTRASHIFT);		
 								
 							  // Start timer if battery is below limit
                 if(global.batteryvoltage < FP_BATTERY_UNDERVOLTAGE_LIMIT) {
@@ -648,8 +602,7 @@ lib_serial_sendstring(0, "\r\n");
 								else // if bettery is above limit reset batterylowtimer
 								{
 									batterylowtimer = 0;
-								}
-								
+								}								
 						}
             // Start next conversion
             lib_adc_startconv();
@@ -658,36 +611,46 @@ lib_serial_sendstring(0, "\r\n");
 				// it's not working, why? used upper "construction"
 				//if (lib_timers_gettimermicroseconds(batterylowtimer) > BATTERY_LOW_TIMER * 1000L) isbatterylow = true;
 				
+			  
+#endif 		
 
+#if (LED != NO_LEDS)
         // Decide what LEDs have to show
-        if(isbatterylow) {
-            // Highest priority: Battery voltage
-            // Blink all LEDs slow
-						global.armed ? leds_blink_continuous(LED_ALL, 1000, 500) : leds_blink_continuous(LED_ALL, 500, 1000);
-        }
-#endif 
+				#ifdef LED1
+				if(global.activecheckboxitems & CHECKBOXMASKLED1) led_status = (led_status | LED1);
+				else led_status = (led_status & ~LED1);
+				#endif
 				
-#if (BATTERY_ADC_CHANNEL != NO_ADC)				
-				else if(isfailsafeactive) {
-#else
-				if(isfailsafeactive) {
-#endif					
-            // Lost contact with TX
-            // Blink LEDs fast alternating
-						leds_blink_continuous(LED_ALL, 125, 125);
-						//lib_serial_sendstring(0, "isfailsafeactive true\r\n");
+				#ifdef LED2
+				if(global.activecheckboxitems & CHECKBOXMASKLED2) led_status = (led_status | LED2);
+				else led_status = (led_status & ~LED2);
+				#endif
+				
+				if(led_status != LED_STATUS)
+				{
+					// disable LEDs
+					leds_set(~led_status);
+				} else if(isbatterylow) {
+					// Highest priority: Battery voltage
+          // Blink LEDs slow
+					global.armed ? leds_blink_continuous(led_status, 1000, 500) : leds_blink_continuous(led_status, 500, 1000);
+        }	else if(isfailsafeactive) {
+					// Lost contact with TX
+					// Blink LEDs fast alternating
+					leds_blink_continuous(led_status, 125, 125);						
         }
         else if(!global.armed) {
-					  //lib_serial_sendstring(0, "isfailsafeactive false\r\n");
-
-            // Not armed
-            // Short blinks
-						leds_blink_continuous(LED_ALL, 50, 450);
-						}
+					// Not armed
+          // Short blinks
+					leds_blink_continuous(led_status, 50, 450);
+				}
         else {
-            // LEDs stay on
-						leds_set(LED_ALL);
+          // LEDs stay on
+					//if (led_status != LED_STATUS)
+					leds_set(led_status);
         }
+				//#endif				
+#endif
 				
     } // Endless loop
 } // main()
@@ -771,22 +734,22 @@ void defaultusersettings(void)
 #ifdef USERSETTINGS_PID_PGAIN_ALTITUDEINDEX		
     usersettings.pid_pgain[ALTITUDEINDEX] = USERSETTINGS_PID_PGAIN_ALTITUDEINDEX;
 #else
-		usersettings.pid_pgain[ALTITUDEINDEX] = PID_TO_CONFIGURATORVALUE_ALT_P(2.7) // 2.7 on configurator
+		usersettings.pid_pgain[ALTITUDEINDEX] = PID_TO_CONFIGURATORVALUE_ALT_P(2.7); // 2.7 on configurator
 #endif
 		
 #ifdef USERSETTINGS_PID_DGAIN_ALTITUDEINDEX		
     usersettings.pid_dgain[ALTITUDEINDEX] = USERSETTINGS_PID_DGAIN_ALTITUDEINDEX;    		
 #else
-		usersettings.pid_dgain[ALTITUDEINDEX] = PID_TO_CONFIGURATORVALUE_ALT_D(6.0) // 6 on configurator
+		usersettings.pid_dgain[ALTITUDEINDEX] = PID_TO_CONFIGURATORVALUE_ALT_D(6.0); // 6 on configurator
 #endif
 
 #ifdef USERSETTINGS_PID_PGAIN_NAVIGATIONINDEX
     usersettings.pid_pgain[NAVIGATIONINDEX] = USERSETTINGS_PID_PGAIN_NAVIGATIONINDEX;   
 #else
-		usersettings.pid_pgain[NAVIGATIONINDEX] = PID_TO_CONFIGURATORVALUE_NAV_P(2.5) // 2.5 on configurator
+		usersettings.pid_pgain[NAVIGATIONINDEX] = PID_TO_CONFIGURATORVALUE_NAV_P(2.5); // 2.5 on configurator
 #endif
 		
-#ifdef USERSETTINGS_PID_DAGIN_NAVIGATIONINDEX	
+#ifdef USERSETTINGS_PID_DGAIN_NAVIGATIONINDEX	
     usersettings.pid_dgain[NAVIGATIONINDEX] = USERSETTINGS_PID_DGAIN_NAVIGATIONINDEX;   
 #else
 	usersettings.pid_dgain[NAVIGATIONINDEX] = PID_TO_CONFIGURATORVALUE_NAV_D(0.188); // .188 on configurator
@@ -840,6 +803,13 @@ void defaultusersettings(void)
 #ifdef USERSETTINGS_CHECKBOXYAWHOLD
 	  usersettings.checkboxconfiguration[CHECKBOXYAWHOLD] = USERSETTINGS_CHECKBOXYAWHOLD;	
 #endif
+#ifdef USERSETTINGS_CHECKBOXLED1
+	  usersettings.checkboxconfiguration[CHECKBOXLED1] = USERSETTINGS_CHECKBOXLED1;	
+#endif
+#ifdef USERSETTINGS_CHECKBOXLED2
+	  usersettings.checkboxconfiguration[CHECKBOXLED2] = USERSETTINGS_CHECKBOXLED2;	
+#endif
+
 
 	// reset the calibration settings
     for (int x = 0; x < 3; ++x) {

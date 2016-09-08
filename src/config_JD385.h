@@ -75,15 +75,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Be sure to uncomment and set the baud rate for any enabled serial ports.
 // note: two examples are given below, but any combination of ports can be added together.
 
-//#define MULTIWII_CONFIG_SERIAL_PORTS NOSERIALPORT
+#define MULTIWII_CONFIG_SERIAL_PORTS NOSERIALPORT
 //see libserial, SERIALPORT0 will in fact open serial port 1 
-#define MULTIWII_CONFIG_SERIAL_PORTS SERIALPORT0
+//#define MULTIWII_CONFIG_SERIAL_PORTS SERIALPORT0
 //#define MULTIWII_CONFIG_SERIAL_PORTS SERIALPORT1
 //#define MULTIWII_CONFIG_SERIAL_PORTS SERIALPORT1+SERIALPORT3
 
 //strange on my copter 115200 does not work becaus rx pin has a pullup or pulldown resistor soldered in -> lower baudrates work
-#define SERIAL_0_BAUD 38400
-//#define SERIAL_0_BAUD 115200
+// #define SERIAL_0_BAUD 38400
+#define SERIAL_0_BAUD 115200
 
 //#define SERIAL_1_BAUD 115200
 //#define SERIAL_2_BAUD 9600
@@ -100,8 +100,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define HIGH_RATES_MULTILIER 2.0
 
 // Choose maximum tilt angles when in level mode
-#define LEVEL_MODE_MAX_TILT 55  // 55 degrees
-#define LEVEL_MODE_MAX_TILT_HIGH_ANGLE 80       // 80 degrees when high angle checkbox active
+#define LEVEL_MODE_MAX_TILT 55  						// 55 degrees
+#define LEVEL_MODE_MAX_TILT_HIGH_ANGLE 80   // 80 degrees when high angle checkbox active
 
 // Choose maximum tilt angles owhile navigating. This will determine how fast it moves from point to point.
 #define NAVIGATION_MAX_TILT 8   //15 degrees
@@ -109,14 +109,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Choose output ranges (in microseconds)
 #define MIN_MOTOR_OUTPUT 1000
 #define MAX_MOTOR_OUTPUT 2000
-#define FAILSAFE_MOTOR_OUTPUT 1200      // throttle setting for bringing the aircraft down at a safe speed
+#define FAILSAFE_MOTOR_OUTPUT 1700     // (for JXD385) throttle setting for bringing the aircraft down at a safe speed
 
 // Un-comment and set to YES or NO to override the default value.
 // When YES, motors will stop when throttle stick is below STICK_RANGE_LOW (see below) and not in acro or semi acro mode.
 #define MOTORS_STOP YES
 
 // set the minimum motor output when armed. If not set, 1067 will be used as a default
-#define ARMED_MIN_MOTOR_OUTPUT 1040     // motors spin slowly when armed
+#define ARMED_MIN_MOTOR_OUTPUT 1040     // motors spin slowly when armed (for JXD385)
 //#define ARMED_MIN_MOTOR_OUTPUT 1170 // motors spin slowly when armed (for blheli flashed q-brain)
 
 // Optionally set an offset from RX Input to ESC output.  Usually used to make sure
@@ -187,8 +187,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define DC_MOTORS
 
 // Uncomment the following line iy you want to use the ADC to monitor the battery voltage
-// #define BATTERY_ADC_CHANNEL NO_ADC
-#define BATTERY_ADC_CHANNEL (1<<2)
+#define BATTERY_ADC_CHANNEL NO_ADC
+//#define BATTERY_ADC_CHANNEL (1<<2)
 #define BATTERY_ADC_DEBUG 0
 // ADC external reference voltage.
 // In the MINI54 the ADC reference voltage is internally tied to
@@ -238,8 +238,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // Parameters for leds
 // define the number of LEDs use on the copter otherwise define NO_LEDS
-// #define LEDS NO_LEDS
-#define LEDS 1
+// #define LED NO_LED
+#define LED 1
 
 // LED Outputs (1)
 // LEDs FL & FR are tied together
@@ -255,6 +255,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #define LED6 LED6_STATE	//0x20
 // #define LED7 LED7_STATE  //0x40
 // #define LED8 LED8_STATE	//0x80
+
+#define LED_STATUS LED1
+// #define LED_STATUS LED1+LED2
 
 // If a LED shall indicate GPS link status define GPS LED over here
 #define GPS_LED NONE
@@ -292,6 +295,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define USERSETTINGS_PID_IGAIN_NAVIGATIONINDEX PID_TO_CONFIGURATORVALUE_NAV_I(0.0)
 #define USERSETTINGS_PID_DGAIN_NAVIGATIONINDEX PID_TO_CONFIGURATORVALUE_NAV_D(0.188)
 
+
 // Checkbox settings...
 // #define USERSETTINGS_CHECKBOXARM CHECKBOXMASKAUX1HIGH
 // #define USERSETTINGS_CHECKBOXAUTOTHROTTLE
@@ -299,17 +303,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #define USERSETTINGS_CHECKBOXCOMPASS
 // #define USERSETTINGS_CHECKBOXPOSITIONHOLD
 // #define USERSETTINGS_CHECKBOXRETURNTOHOME
-#define USERSETTINGS_CHECKBOXSEMIACRO CHECKBOXMASKAUX1HIGH
+// #define USERSETTINGS_CHECKBOXSEMIACRO CHECKBOXMASKAUX1HIGH
 // #define USERSETTINGS_CHECKBOXFULLACRO
-#define USERSETTINGS_CHECKBOXHIGHRATES CHECKBOXMASKAUX1HIGH
+// #define USERSETTINGS_CHECKBOXHIGHRATES CHECKBOXMASKAUX1HIGH
 // #define USERSETTINGS_CHECKBOXHIGHANGLE CHECKBOXMASKAUX1LOW
-#define USERSETTINGS_CHECKBOXAUTOTUNE CHECKBOXMASKAUX2HIGH
+// #define USERSETTINGS_CHECKBOXAUTOTUNE CHECKBOXMASKAUX2HIGH
 // #define USERSETTINGS_CHECKBOXUNCRASHABLE
 // #define USERSETTINGS_CHECKBOXHEADFREE
 // #define USERSETTINGS_CHECKBOXYAWHOLD
+ #define USERSETTINGS_CHECKBOXLED1 CHECKBOXMASKAUX1HIGH
+ #define USERSETTINGS_CHECKBOXLED2 CHECKBOXMASKAUX2HIGH
 
 // Switch to use eeprom
 // EEPROM is not tested or available on all model
 // #define EEPROM NO_EEPROM
-// Warning just define any size
-#define EEPROM_SIZE 1024
+#define EEPROM_SIZE 512

@@ -34,7 +34,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define AUX4INDEX 7
 
 #define ALTITUDEINDEX 3         // pid gain index
-#define NAVIGATIONINDEX 6       // pid gian index
+#define NAVIGATIONINDEX 6       // pid gain index
+#define LEVELINDEX 7						// Pid gain index
 
 #define XINDEX 0
 #define YINDEX 1

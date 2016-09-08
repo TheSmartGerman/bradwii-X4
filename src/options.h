@@ -120,3 +120,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // EEPROM
 #define NO_EEPROM 0
+
+// LEDs
+#define NO_LED 0
