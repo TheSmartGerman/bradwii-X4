@@ -227,8 +227,7 @@ int main(void)
     
 		initimu();
 		
-<<<<<<< HEAD
-=======
+
 #if 0
 lib_serial_sendstring(DEBUGPORT, "PID P=");
 serialprintfixedpoint_no_linebreak(0, usersettings.pid_pgain[PITCHINDEX]); 
@@ -238,7 +237,8 @@ lib_serial_sendstring(DEBUGPORT, " D=");
 serialprintfixedpoint_no_linebreak(0, usersettings.pid_dgain[PITCHINDEX]);
 lib_serial_sendstring(DEBUGPORT, "\r\n");
 #endif
->>>>>>> test4/master
+
+
 #if (BATTERY_ADC_CHANNEL != NO_ADC)
 		// Measure internal bandgap voltage now.
     // Battery is probably full and there is no load,
@@ -262,16 +262,11 @@ lib_serial_sendstring(DEBUGPORT, "\r\n");
     bandgapvoltageraw = lib_adc_read_raw();
     // Start first battery voltage measurement
     isadcchannelref = false;
-<<<<<<< HEAD
-    //lib_adc_select_channel(adc_bat_channel);
-		lib_adc_select_channel(LIB_ADC_CHAN2);
-=======
+
     lib_adc_select_channel(adc_bat_channel);
->>>>>>> test4/master
+
     lib_adc_startconv();
 		
-<<<<<<< HEAD
-=======
 		lib_serial_sendstring(DEBUGPORT, "POWER ON ADC MEASURMENTS:================\r\n");
 		lib_serial_sendstring(DEBUGPORT, "BANDGAP=");
 		serialprintfixedpoint_no_linebreak(0, initialbandgapvoltage);
@@ -281,18 +276,14 @@ lib_serial_sendstring(DEBUGPORT, "\r\n");
 		serialprintfixedpoint_no_linebreak(0, batteryvoltageraw);
 		lib_serial_sendstring(DEBUGPORT, "=========================================\r\n");
 		lib_timers_delaymilliseconds(2000);
-	#endif
->>>>>>> test4/master
 #endif
+
     // set the default i2c speed to 400 kHz.  If a device needs to slow it down, it can, but it should set it back.
     lib_i2c_setclockspeed(I2C_400_KHZ);
 
     global.armed = 0;
     global.navigationmode = NAVIGATIONMODEOFF;
     global.failsafetimer = lib_timers_starttimer();
-<<<<<<< HEAD
-			
-=======
 		
 
 		/*
@@ -315,7 +306,6 @@ lib_serial_sendstring(DEBUGPORT, "\r\n");
 		}
 		*/
 		
->>>>>>> test4/master
     for (;;) {
 
         // check to see what switches are activated
@@ -641,12 +631,8 @@ lib_serial_sendstring(DEBUGPORT, "\r\n");
             if(isadcchannelref) {
                 bandgapvoltageraw = lib_adc_read_raw();
                 isadcchannelref = false;
-<<<<<<< HEAD
-                //lib_adc_select_channel(adc_bat_channel);
-								lib_adc_select_channel(LIB_ADC_CHAN2);
-=======
                 lib_adc_select_channel(adc_bat_channel);
->>>>>>> test4/master
+
             } else {
 								//raw voltage is 0.0-1.0 (min to max adc )
                 batteryvoltageraw = lib_adc_read_raw();
@@ -666,9 +652,7 @@ lib_serial_sendstring(DEBUGPORT, "\r\n");
                 // Use constant FIXEDPOINTONEOVERONEFOURTH instead of FIXEDPOINTONEOVERONEHALF
                 // Because we call this only every other iteration.
                 // (...alternatively multiply global.timesliver by two).      
-<<<<<<< HEAD
-								lib_fp_lowpassfilter(&(global.batteryvoltage), batteryvoltage, global.timesliver, FIXEDPOINTONEOVERONEFOURTH, TIMESLIVEREXTRASHIFT);		
-=======
+
 								lib_fp_lowpassfilter(&(global.batteryvoltage), batteryvoltage, global.timesliver, FIXEDPOINTONEOVERONEFOURTH, TIMESLIVEREXTRASHIFT);	
 
 #if (BATTERY_ADC_DEBUG)
@@ -681,7 +665,6 @@ lib_serial_sendstring(DEBUGPORT, "\r\n");
 	lib_serial_sendstring(DEBUGPORT, " FILTERED BAT=");
 	serialprintfixedpoint_no_linebreak(0, global.batteryvoltage);
 #endif							
->>>>>>> test4/master
 								
 							  // Start timer if battery is below limit
                 if(global.batteryvoltage < FP_BATTERY_UNDERVOLTAGE_LIMIT) {
@@ -716,7 +699,6 @@ lib_serial_sendstring(DEBUGPORT, "\r\n");
 				else led_status = (led_status & ~LED1);
 				#endif
 				
-<<<<<<< HEAD
 				#ifdef LED2
 				if(global.activecheckboxitems & CHECKBOXMASKLED2) led_status = (led_status | LED2);
 				else led_status = (led_status & ~LED2);
@@ -733,8 +715,9 @@ lib_serial_sendstring(DEBUGPORT, "\r\n");
         }	else if(isfailsafeactive) {
 					// Lost contact with TX
 					// Blink LEDs fast alternating
-					leds_blink_continuous(led_status, 125, 125);						
-=======
+					leds_blink_continuous(led_status, 125, 125);		
+#endif
+					
 #if (BATTERY_ADC_CHANNEL != NO_ADC)				
 	else if(isfailsafeactive) {
 #else
@@ -742,36 +725,26 @@ lib_serial_sendstring(DEBUGPORT, "\r\n");
 #endif					
             // Lost contact with TX
             // Blink LEDs fast alternating
-	    leds_blink_continuous(LED_ALL, 125, 125);
-	    //lib_serial_sendstring(DEBUGPORT, "isfailsafeactive true\r\n");
->>>>>>> test4/master
+						leds_blink_continuous(LED_ALL, 125, 125);
+						//lib_serial_sendstring(DEBUGPORT, "isfailsafeactive true\r\n");
         }
+			}
 #ifdef USERSETTINGS_CHECKBOXLEDTOGGLE
 	else if(global.activecheckboxitems & CHECKBOXMASKLEDTOGGLE)  { 
   	    leds_set(LED_NONE);
 	}
 #endif	
         else if(!global.armed) {
-<<<<<<< HEAD
 					// Not armed
           // Short blinks
 					leds_blink_continuous(led_status, 50, 450);
 				}
-=======
-					  //lib_serial_sendstring(DEBUGPORT, "isfailsafeactive false\r\n");
-
-            // Not armed
-            // Short blinks
-						leds_blink_continuous(LED_ALL, 50, 450);
-						}
->>>>>>> test4/master
         else {
           // LEDs stay on
 					//if (led_status != LED_STATUS)
 					leds_set(led_status);
         }
-				//#endif				
-#endif
+				//#endif	
 				
     } // Endless loop
 } // main()
@@ -924,7 +897,7 @@ void defaultusersettings(void)
 #ifdef USERSETTINGS_CHECKBOXYAWHOLD
 	  usersettings.checkboxconfiguration[CHECKBOXYAWHOLD] = USERSETTINGS_CHECKBOXYAWHOLD;	
 #endif
-<<<<<<< HEAD
+
 #ifdef USERSETTINGS_CHECKBOXLED1
 	  usersettings.checkboxconfiguration[CHECKBOXLED1] = USERSETTINGS_CHECKBOXLED1;	
 #endif
@@ -932,13 +905,7 @@ void defaultusersettings(void)
 	  usersettings.checkboxconfiguration[CHECKBOXLED2] = USERSETTINGS_CHECKBOXLED2;	
 #endif
 
-
-=======
-#ifdef USERSETTINGS_CHECKBOXLEDTOGGLE
-	  usersettings.checkboxconfiguration[CHECKBOXLEDTOGGLE] = USERSETTINGS_CHECKBOXLEDTOGGLE;	
-#endif
->>>>>>> test4/master
-	// reset the calibration settings
+// reset the calibration settings
     for (int x = 0; x < 3; ++x) {
         usersettings.compasszerooffset[x] = 0;
         usersettings.compasscalibrationmultiplier[x] = 1L << FIXEDPOINTSHIFT;
