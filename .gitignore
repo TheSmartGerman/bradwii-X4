@@ -10,3 +10,4 @@ obj-Mini51/
 .settings/
 
 us.stackdump
+*.c~

@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "imu.h"
 #include "compass.h"
 #include "leds.h"
+#include "eeprom.h"
 
 extern globalstruct global;
 extern usersettingsstruct usersettings;
@@ -127,10 +128,14 @@ void calibrategyroandaccelerometer(bool both)
 void initimu(void)
 {
     // calibrate both sensors if we didn't load any data from eeprom
-    if (global.usersettingsfromeeprom == 0)
+    if (global.usersettingsfromeeprom == 0){
         calibrategyroandaccelerometer(true);
-    else // only gyro
-        calibrategyroandaccelerometer(false);
+	// Save in EEPROM
+        writeusersettingstoeeprom();
+	}
+//For my X4, nothing special about the gyro.
+//    else // only gyro
+//        calibrategyroandaccelerometer(false);
 
     global.estimateddownvector[XINDEX] = 0;
     global.estimateddownvector[YINDEX] = 0;
@@ -154,6 +159,13 @@ void imucalculateestimatedattitude(void)
 {
     readgyro();
     readacc();
+    
+#ifdef INVERTED
+    //Inverted	
+    global.gyrorate[ROLLINDEX] = -global.gyrorate[ROLLINDEX];
+    global.gyrorate[PITCHINDEX] = -global.gyrorate[PITCHINDEX];
+    global.gyrorate[YAWINDEX]   = - global.gyrorate[YAWINDEX];
+#endif
 
     // correct the gyro and acc readings to remove error      
     for (int x = 0; x < 3; ++x) {

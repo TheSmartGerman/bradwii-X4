@@ -368,48 +368,6 @@ void serialcheckportforaction(char portnumber)
     }
 }
 
-void serialprintnumber(char portnumber, long num, int digits, int decimals, char usebuffer)
-   // prints a int number, right justified, using digits # of digits, puting a
-   // decimal decimals places from the end, and using blank
-   // to fill all blank spaces
-{
-    char stg[12];
-    char *ptr;
-    int x;
-
-    ptr = stg + 11;
-
-    *ptr = '\0';
-    if (num < 0) {
-        num = -num;
-        *(--ptr) = '-';
-    } else
-        *(--ptr) = ' ';
-
-    for (x = 1; x <= digits; ++x) {
-        if (num == 0)
-            *(--ptr) = ' ';
-        else {
-            *(--ptr) = 48 + num - (num / 10) * 10;
-            num /= 10;
-        }
-        if (x == decimals)
-            *(--ptr) = '.';
-    }
-    lib_serial_sendstring(portnumber, ptr);
-}
-
-void serialprintfixedpoint(char portnumber, fixedpointnum fp)
-{
-    serialprintnumber(portnumber, lib_fp_multiply(fp, 1000), 7, 3, 1);
-    lib_serial_sendstring(portnumber, "\n\r");
-}
-
-void serialprintfixedpoint_no_linebreak(char portnumber, fixedpointnum fp)
-{
-    serialprintnumber(portnumber, lib_fp_multiply(fp, 1000), 7, 3, 1);
-}
-
 //#define SERIALTEXTDEBUG
 #ifdef SERIALTEXTDEBUG
 
@@ -457,6 +415,52 @@ void serialcheckportforactiontest(char portnumber)
     }
 }
 #endif
+#endif
+
+#if (MULTIWII_CONFIG_SERIAL_PORTS!=NOSERIALPORT) || defined(DEBUGPORT)
+
+void serialprintnumber(char portnumber, long num, int digits, int decimals, char usebuffer)
+   // prints a int number, right justified, using digits # of digits, puting a
+   // decimal decimals places from the end, and using blank
+   // to fill all blank spaces
+{
+    char stg[12];
+    char *ptr;
+    int x;
+
+    ptr = stg + 11;
+
+    *ptr = '\0';
+    if (num < 0) {
+        num = -num;
+        *(--ptr) = '-';
+    } else
+        *(--ptr) = ' ';
+
+    for (x = 1; x <= digits; ++x) {
+        if (num == 0)
+            *(--ptr) = ' ';
+        else {
+            *(--ptr) = 48 + num - (num / 10) * 10;
+            num /= 10;
+        }
+        if (x == decimals)
+            *(--ptr) = '.';
+    }
+    lib_serial_sendstring(portnumber, ptr);
+}
+
+void serialprintfixedpoint(char portnumber, fixedpointnum fp)
+{
+    serialprintnumber(portnumber, lib_fp_multiply(fp, 1000), 7, 3, 1);
+    lib_serial_sendstring(portnumber, "\n\r");
+}
+
+void serialprintfixedpoint_no_linebreak(char portnumber, fixedpointnum fp)
+{
+    serialprintnumber(portnumber, lib_fp_multiply(fp, 1000), 7, 3, 1);
+}
+
 #endif
 
 void serialcheckforaction(void)

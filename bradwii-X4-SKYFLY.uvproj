@@ -369,7 +369,7 @@
             <vShortWch>0</vShortWch>
             <VariousControls>
               <MiscControls>--gnu</MiscControls>
-              <Define>X4_BUILD</Define>
+              <Define>X4_BUILD FLYSKY_TX</Define>
               <Undefine></Undefine>
               <IncludePath>lib-Mini51\hal;src;lib-Mini51\CMSIS\Include;lib-Mini51\Device\Nuvoton\Mini51Series\Include;lib-Mini51\StdDriver\inc</IncludePath>
             </VariousControls>
@@ -490,11 +490,6 @@
               <FilePath>.\src\vectors.c</FilePath>
             </File>
             <File>
-              <FileName>rx_x4.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\src\rx_x4.c</FilePath>
-            </File>
-            <File>
               <FileName>a7105.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\a7105.c</FilePath>
@@ -508,6 +503,11 @@
               <FileName>leds.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\leds.c</FilePath>
+            </File>
+            <File>
+              <FileName>rx_flysky.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\rx_flysky.c</FilePath>
             </File>
           </Files>
         </Group>

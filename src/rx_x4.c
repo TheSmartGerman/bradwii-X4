@@ -25,9 +25,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "config_X4.h"
 #include "leds.h"
 
+extern usersettingsstruct usersettings;
+
+#if CONTROL_BOARD_TYPE == CONTROL_BOARD_HUBSAN_H107L
 #define A7105_SCS   (DIGITALPORT1 | 4)
 #define A7105_SCK   (DIGITALPORT1 | 3)
 #define A7105_SDIO  (DIGITALPORT1 | 2)
+#endif
+
+#if CONTROL_BOARD_TYPE == CONTROL_BOARD_HUBSAN_Q4
+#define A7105_SCS   (DIGITALPORT1 | 2)
+#define A7105_SCK   (DIGITALPORT1 | 0)
+#define A7105_SDIO  (DIGITALPORT5 | 3)
+#endif
 
 #define AUX1_FLAG   0x04 
 #define AUX2_FLAG   0x08 
@@ -35,10 +45,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 static const uint8_t allowed_ch[] = {0x14, 0x1E, 0x28, 0x32, 0x3C, 0x46, 0x50, 0x5A, 0x64, 0x6E, 0x78, 0x82};
 static uint8_t packet[16], channel, counter;
 static uint8_t txid[4];
-static unsigned long timeout_timer;
 void init_a7105(void);
 bool hubsan_check_integrity(void);
 void update_crc(void);
+
 
 extern globalstruct global;
 
@@ -62,7 +72,7 @@ void hubsan_build_bind_packet(uint8_t bindstate)
 {
     packet[0] = bindstate;
     packet[1] = (bindstate!=0x0a)? channel : counter;
-    packet[6] = 0x08;
+  	packet[6] = 0x08;
     packet[7] = 0xe4;
     packet[8] = 0xea;	
     packet[9] = 0x9e;
@@ -86,18 +96,26 @@ void init_a7105(void)
     A7105_WriteRegister(A7105_20_CODE_II, 0x17);
     A7105_WriteRegister(A7105_29_RX_DEM_TEST_I, 0x47);
     A7105_Strobe(A7105_STANDBY);
+/* What is the correct calibration procedure?
+	A7105_Strobe (A7105_PLL);
+	 A7105_WriteRegister(A7105_02_CALC,0x01);
+	 A7105_WriteRegister(A7105_02_CALC,0x02);
+	 A7105_WriteRegister(A7105_02_CALC,0x02);
+	 A7105_Strobe(A7105_RX);
+*/  
     A7105_WriteRegister(A7105_02_CALC,0x01);
     A7105_WriteRegister(A7105_0F_PLL_I,0x00);
     A7105_WriteRegister(A7105_02_CALC,0x02);
     A7105_WriteRegister(A7105_0F_PLL_I,0xA0);
     A7105_WriteRegister(A7105_02_CALC,0x02);
     A7105_Strobe(A7105_STANDBY);
+
 }
 
 void waitTRXCompletion(void)
 {
     while(( A7105_ReadRegister(A7105_00_MODE) & A7105_MODE_TRER_MASK)) 
-        ;
+       ;
 }
 
 void strobeTXRX(void)
@@ -110,11 +128,92 @@ void strobeTXRX(void)
     A7105_Strobe(A7105_RST_RDPTR);
 }
 
+
+enum TelemetryFrame {
+	GYRO,
+	ACC,
+#ifdef HUBSAN_EXTENDED_PROTOCOL
+  PID,
+#endif
+	LAST
+};
+void hubsan_send_voltage()
+{
+	static uint8_t e=GYRO;
+	if (e==LAST) e=GYRO;
+	switch (e) {
+		case GYRO :
+	  packet[0] = 0xe0;  //Its Telemetry
+		for (int i=1;i<13;i++) packet[i]=0xFF;
+	// gyro 
+		// pitch
+		packet[7]=global.gyrorate[1] / (2000L << (FIXEDPOINTSHIFT - 15)) >> 8 ;
+		packet[8]=global.gyrorate[1] / (2000L << (FIXEDPOINTSHIFT - 15));
+		//roll
+		packet[9]=-global.gyrorate[0] / (2000L << (FIXEDPOINTSHIFT - 15)) >> 8 ;
+		packet[10]=-global.gyrorate[0] / (2000L << (FIXEDPOINTSHIFT - 15));
+		//yaw
+		packet[11]=global.gyrorate[2] / (2000L << (FIXEDPOINTSHIFT - 15)) >> 8 ;
+		packet[12]=global.gyrorate[2] / (2000L << (FIXEDPOINTSHIFT - 15));
+
+    packet[13] = (global.batteryvoltage * 10) >> 16;   //Voltage, comp intensive?
+    update_crc();
+    A7105_Strobe(A7105_STANDBY);
+    A7105_WritePayload((uint8_t*)&packet, sizeof(packet));
+    A7105_Strobe(A7105_TX);
+	  waitTRXCompletion();
+    A7105_Strobe(A7105_RX);
+		break;
+		case ACC:
+    packet[0] = 0xe1;  //Its Telemetry
+		for (int i=1;i<13;i++) packet[i]=0xFF;
+	// acc 
+		
+		packet[7]=global.acc_g_vector[1] >> (6+8);
+		packet[8]=global.acc_g_vector[1] >> (6);
+		packet[9]=-global.acc_g_vector[0] >> (6+8);
+		packet[10]=-global.acc_g_vector[0] >> (6);
+		packet[11]=global.acc_g_vector[2] >> (6+8);
+		packet[12]=global.acc_g_vector[2] >> (6);
+
+    packet[13] = (global.batteryvoltage * 10) >> 16;   //Voltage, comp intensive?
+    update_crc();
+    A7105_Strobe(A7105_STANDBY);
+    A7105_WritePayload((uint8_t*)&packet, sizeof(packet));
+    A7105_Strobe(A7105_TX);
+	  waitTRXCompletion();
+    A7105_Strobe(A7105_RX);
+		break;
+#ifdef HUBSAN_EXTENDED_PROTOCOL
+		case PID:
+			    packet[0] = 0xe3;  //Its Telemetry
+		for (int i=1;i<13;i++) packet[i]=0xFF;
+		
+		for (int i=0; i<3;i++) {
+			packet[1+i*3]=usersettings.pid_pgain[i]/8;       // The various PID p gains
+			packet[2+i*3]=usersettings.pid_igain[i];       // The various PID p gains
+			packet[3+i*3]=usersettings.pid_dgain[i]>>2;       // The various PID p gains
+		//	fixedpointnum pid_igain[NUMPIDITEMS];       // The various PID i gains
+		//	fixedpointnum pid_dgain[NUMPIDITEMS]; 
+		}
+
+    packet[13] = (global.batteryvoltage * 10) >> 16;   //Voltage, comp intensive?
+    update_crc();
+    A7105_Strobe(A7105_STANDBY);
+    A7105_WritePayload((uint8_t*)&packet, sizeof(packet));
+    A7105_Strobe(A7105_TX);
+	  waitTRXCompletion();
+    A7105_Strobe(A7105_RX);
+#endif		
+	}
+	e++;
+}
+
 void bind() 
 {
     uint8_t chan=0;
 	
-    while(1){
+    while(1){   //Negotiate Channel
 			
         if( lib_timers_gettimermicroseconds(0) % 500000 > 250000)
             leds_set(LED1 | LED5);
@@ -134,17 +233,17 @@ void bind()
                 break;
             }
             if(A7105_ReadRegister(A7105_00_MODE) & A7105_MODE_TRER_MASK){
-                continue;
+                continue; //received nothing
             }else{
                 A7105_ReadPayload((uint8_t*)&packet, sizeof(packet)); 
                 A7105_Strobe(A7105_RST_RDPTR);
                 if (packet[0]==1){
-                    break;
+                    break; //picked a channel
                 }	
             }
         }	
         if (packet[0]==1){
-            break;
+            break; //break from 2nd loop
         }
     }
     channel = packet[1];
@@ -168,8 +267,8 @@ void bind()
     waitTRXCompletion();
 
     A7105_WriteID(((uint32_t)packet[2] << 24) | ((uint32_t)packet[3] << 16) | ((uint32_t)packet[4] << 8) | packet[5]);
-	
-    while(1) { // useless block ?
+    /*	
+    while(1) { // reset read pointer over and over ?
         A7105_Strobe(A7105_RX);
         waitTRXCompletion();
         A7105_Strobe(A7105_RST_RDPTR);
@@ -178,7 +277,7 @@ void bind()
             break;
         }
     }
-	
+	  */
     while(1){
         hubsan_build_bind_packet(2);
         A7105_Strobe(A7105_STANDBY);
@@ -201,15 +300,17 @@ void bind()
         A7105_ReadPayload((uint8_t*)&packet, sizeof(packet));
         if (counter==9){
             break;
+            }
         }
-    }
 	
-    A7105_WriteRegister(A7105_1F_CODE_I,0x0F); //CRC option CRC enabled adress 0x1f data 1111(CRCS=1,IDL=4bytes,PML[1:1]=4 bytes)
-    //A7105_WriteRegister(0x28, 0x1F);//set Power to "1" dbm max value.
+     A7105_WriteRegister(A7105_1F_CODE_I,0x0F); //CRC option CRC enabled adress 0x1f data 1111(CRCS=1,IDL=4bytes,PML[1:1]=4 bytes)
+    //A7105_WriteRegister(0x28, 0x1F);//set Power to "1" dbm max value. You can for ACKs
     A7105_Strobe(A7105_STANDBY);
     for(int i=0;i<4;i++){
         txid[i]=packet[i+11];
     }
+		
+    global.failsafetimer = lib_timers_starttimer();
 }
 
 void initrx(void)
@@ -221,38 +322,45 @@ void initrx(void)
     A7105_Strobe(A7105_RX);
 }
 
+void rx_lib_fp_lowpassfilter(fixedpointnum *variable, fixedpointnum newvalue, fixedpointnum timesliver, fixedpointnum oneoverperiod, int timesliverextrashift)
+{
+    *variable = newvalue;
+}
+
 void decodepacket()
 {
     if(packet[0]==0x20) {
         // converts [0;255] to [-1;1] fixed point num
-        lib_fp_lowpassfilter(&global.rxvalues[THROTTLEINDEX], ((fixedpointnum) packet[2] - 0x80) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
-        lib_fp_lowpassfilter(&global.rxvalues[YAWINDEX], ((fixedpointnum) packet[4] - 0x80) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
-        lib_fp_lowpassfilter(&global.rxvalues[PITCHINDEX], ((fixedpointnum) 0x80 - packet[6]) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
-        lib_fp_lowpassfilter(&global.rxvalues[ROLLINDEX], ((fixedpointnum) 0x80 - packet[8]) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[THROTTLEINDEX], ((fixedpointnum) packet[2] - 0x80) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[YAWINDEX], ((fixedpointnum) packet[4] - 0x80) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[PITCHINDEX], ((fixedpointnum) 0x80 - packet[6]) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[ROLLINDEX], ((fixedpointnum) 0x80 - packet[8]) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
         // "LEDs" channel, AUX1 (only on H107L, H107C, H107D and Deviation TXs, high by default)
-        lib_fp_lowpassfilter(&global.rxvalues[AUX1INDEX], ((fixedpointnum) (packet[9] & AUX1_FLAG ? 0x7F : -0x7F)) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[AUX1INDEX], ((fixedpointnum) (packet[9] & AUX1_FLAG ? 0x7F : -0x7F)) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
         // "Flip" channel, AUX2 (only on H107L, H107C, H107D and Deviation TXs, high by default)
-        lib_fp_lowpassfilter(&global.rxvalues[AUX2INDEX], ((fixedpointnum) (packet[9] & AUX2_FLAG ? 0x7F : -0x7F)) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
+        rx_lib_fp_lowpassfilter(&global.rxvalues[AUX2INDEX], ((fixedpointnum) (packet[9] & AUX2_FLAG ? 0x7F : -0x7F)) * 513L, global.timesliver, FIXEDPOINTONEOVERONESIXTYITH, TIMESLIVEREXTRASHIFT);
     }
 }
 
+static unsigned long timeout_timer;
+
 void readrx(void) // todo : telemetry
 {
-    if( lib_timers_gettimermicroseconds(timeout_timer) > 14000) {
+	  if( lib_timers_gettimermicroseconds(timeout_timer) > 14000) {
         timeout_timer = lib_timers_starttimer();
         A7105_Strobe(A7105_RX);
     }
     if(A7105_ReadRegister(A7105_00_MODE) & A7105_MODE_TRER_MASK)
         return; // nothing received
     A7105_ReadPayload((uint8_t*)&packet, sizeof(packet)); 
-    if(!((packet[11]==txid[0])&&(packet[12]==txid[1])&&(packet[13]==txid[2])&&(packet[14]==txid[3])))
-        return; // not our TX !
-    if(!hubsan_check_integrity())
-        return; // bad checksum
-    timeout_timer = lib_timers_starttimer();
-    A7105_Strobe(A7105_RST_RDPTR);
-    A7105_Strobe(A7105_RX);
-    decodepacket();
-    // reset the failsafe timer
-    global.failsafetimer = lib_timers_starttimer();
+    A7105_Strobe(A7105_RST_RDPTR); //reset the data pointer
+    A7105_Strobe(A7105_RX); //state machine to read mode
+    if ( ((packet[11]==txid[0])&&(packet[12]==txid[1])&&(packet[13]==txid[2])&&(packet[14]==txid[3])) && hubsan_check_integrity() ) {
+      decodepacket(); //skip packets with bad checksum or wrong txid. Why can't I use the 00 register for this?
+			hubsan_send_voltage();
+			// reset the failsafe timer
+			global.failsafetimer = lib_timers_starttimer();
+			timeout_timer = lib_timers_starttimer();
+		}
+    
 }

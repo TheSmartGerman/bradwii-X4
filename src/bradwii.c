@@ -61,18 +61,6 @@ m
 
 */
 
-// library headers
-#include "hal.h"
-#include "lib_timers.h"
-#if (MULTIWII_CONFIG_SERIAL_PORTS != NOSERIALPORT)
-#include "lib_serial.h"
-#endif
-#include "lib_i2c.h"
-#include "lib_digitalio.h"
-#include "lib_fp.h"
-#if (BATTERY_ADC_CHANNEL != NO_ADC)
-#include "lib_adc.h"
-#endif
 
 // project file headers
 #include "bradwii.h"
@@ -90,6 +78,19 @@ m
 #include "pilotcontrol.h"
 #include "autotune.h"
 #include "leds.h"
+
+// library headers
+#include "hal.h"
+#include "lib_timers.h"
+#if (MULTIWII_CONFIG_SERIAL_PORTS != NOSERIALPORT) || (DEBUGPORT == 6)
+#include "lib_serial.h"
+#endif
+#include "lib_i2c.h"
+#include "lib_digitalio.h"
+#include "lib_fp.h"
+#if (BATTERY_ADC_CHANNEL != NO_ADC)
+#include "lib_adc.h"
+#endif
 
 // Data type for stick movement detection to execute accelerometer calibration
 typedef enum stickstate_tag {
@@ -133,7 +134,7 @@ static void detectstickcommand(void);
 // It all starts here:
 int main(void)
 {
-	
+
 #if (BATTERY_ADC_CHANNEL != NO_ADC)
     // Static to keep it off the stack
 	
@@ -152,9 +153,8 @@ int main(void)
 		// Enables battery low indicator after the voltage droped under the specified limit for a amount of time
 		unsigned long batterylowtimer;
 		
-		// not working why?
-	  // static lib_adc_channel_t adc_bat_channel = (lib_adc_channel_t) BATTERY_ADC_CHANNEL;
-		// static lib_adc_channel_t adc_ref_channel = (lib_adc_channel_t) 8;
+		// this is a casting problem between enum/int?
+	  static lib_adc_channel_t adc_bat_channel = BATTERY_ADC_CHANNEL;
 #endif
 	
     static bool isfailsafeactive;     // true while we don't get new data from transmitter
@@ -227,6 +227,18 @@ int main(void)
     
 		initimu();
 		
+<<<<<<< HEAD
+=======
+#if 0
+lib_serial_sendstring(DEBUGPORT, "PID P=");
+serialprintfixedpoint_no_linebreak(0, usersettings.pid_pgain[PITCHINDEX]); 
+lib_serial_sendstring(DEBUGPORT, " I=");
+serialprintfixedpoint_no_linebreak(0, usersettings.pid_igain[PITCHINDEX]);
+lib_serial_sendstring(DEBUGPORT, " D=");
+serialprintfixedpoint_no_linebreak(0, usersettings.pid_dgain[PITCHINDEX]);
+lib_serial_sendstring(DEBUGPORT, "\r\n");
+#endif
+>>>>>>> test4/master
 #if (BATTERY_ADC_CHANNEL != NO_ADC)
 		// Measure internal bandgap voltage now.
     // Battery is probably full and there is no load,
@@ -250,10 +262,27 @@ int main(void)
     bandgapvoltageraw = lib_adc_read_raw();
     // Start first battery voltage measurement
     isadcchannelref = false;
+<<<<<<< HEAD
     //lib_adc_select_channel(adc_bat_channel);
 		lib_adc_select_channel(LIB_ADC_CHAN2);
+=======
+    lib_adc_select_channel(adc_bat_channel);
+>>>>>>> test4/master
     lib_adc_startconv();
 		
+<<<<<<< HEAD
+=======
+		lib_serial_sendstring(DEBUGPORT, "POWER ON ADC MEASURMENTS:================\r\n");
+		lib_serial_sendstring(DEBUGPORT, "BANDGAP=");
+		serialprintfixedpoint_no_linebreak(0, initialbandgapvoltage);
+		lib_serial_sendstring(DEBUGPORT, "\r\nBGAPVOLTAGERAW=");
+		serialprintfixedpoint_no_linebreak(0, bandgapvoltageraw);
+		lib_serial_sendstring(DEBUGPORT, "\r\nBATTERY RAW=");
+		serialprintfixedpoint_no_linebreak(0, batteryvoltageraw);
+		lib_serial_sendstring(DEBUGPORT, "=========================================\r\n");
+		lib_timers_delaymilliseconds(2000);
+	#endif
+>>>>>>> test4/master
 #endif
     // set the default i2c speed to 400 kHz.  If a device needs to slow it down, it can, but it should set it back.
     lib_i2c_setclockspeed(I2C_400_KHZ);
@@ -261,7 +290,32 @@ int main(void)
     global.armed = 0;
     global.navigationmode = NAVIGATIONMODEOFF;
     global.failsafetimer = lib_timers_starttimer();
+<<<<<<< HEAD
 			
+=======
+		
+
+		/*
+		//testcode to see if uart works
+		unsigned int led_state = 0;
+		for (;;) {
+			//lib_serial_sendchar(0, 'H');
+			char x = lib_serial_numcharsavailable(0);
+			//lib_serial_sendchar(0, '0'+x);
+			if (x != 0){
+				lib_serial_sendstring(DEBUGPORT, "POWER ON ADC MEASURMENTS:================\r\n");
+			  unsigned char c = lib_serial_getchar(0);
+				lib_serial_sendchar(0, c);
+				lib_serial_sendchar(0, '\r');
+				lib_serial_sendchar(0, '\n');
+			}
+			leds_set(led_state);
+			led_state = 0xFF-led_state;
+			lib_timers_delaymilliseconds(1);
+		}
+		*/
+		
+>>>>>>> test4/master
     for (;;) {
 
         // check to see what switches are activated
@@ -287,14 +341,16 @@ int main(void)
                     global.heading_when_armed = global.currentestimatedeulerattitude[YAWINDEX];
                     global.altitude_when_armed = global.barorawaltitude;
                 }
-            } else if (!(global.activecheckboxitems & CHECKBOXMASKARM))
+            } else if (!(global.activecheckboxitems & CHECKBOXMASKARM)) {
                 global.armed = 0;
+			}
         } // if throttle low
 
         if(!global.armed) {
             // Not armed: check if there is a stick command to execute.
             detectstickcommand();
         }
+
 
 #if (GPS_TYPE!=NO_GPS)
         // turn on or off navigation when appropriate
@@ -326,7 +382,7 @@ int main(void)
 	        // turn on the LED when we are stable and the gps has 5 satellites or more
 #if (GPS_TYPE==NO_GPS)
 #if (GPS_LED != NONE)
-				leds_set(((global.stable == 0) ? (!GPS_LED) : GPS_LED));
+	leds_set(((global.stable == 0) ? (!GPS_LED) : GPS_LED));
 #endif
 #else
 #if (LED_GPS != NONE)				
@@ -363,12 +419,20 @@ int main(void)
 #ifndef NO_AUTOTUNE
         // let autotune adjust the angle error if the pilot has autotune turned on
         if (global.activecheckboxitems & CHECKBOXMASKAUTOTUNE) {
-            if (!(global.previousactivecheckboxitems & CHECKBOXMASKAUTOTUNE))
+            if (!(global.previousactivecheckboxitems & CHECKBOXMASKAUTOTUNE)) {
                 autotune(angleerror, AUTOTUNESTARTING); // tell autotune that we just started autotuning
+#if defined(DEBUGPORT)
+			lib_serial_sendstring(DEBUGPORT, "AT START\n");
+#endif
+		}
             else
                 autotune(angleerror, AUTOTUNETUNING);   // tell autotune that we are in the middle of autotuning
-        } else if (global.previousactivecheckboxitems & CHECKBOXMASKAUTOTUNE)
+        } else if (global.previousactivecheckboxitems & CHECKBOXMASKAUTOTUNE) {
+#if defined(DEBUGPORT)
+			lib_serial_sendstring(DEBUGPORT, "AT STOP\n");
+#endif
             autotune(angleerror, AUTOTUNESTOPPING);     // tell autotune that we just stopped autotuning
+	}
 #endif
 
         // get the pilot's throttle component
@@ -496,7 +560,11 @@ int main(void)
         if (lib_timers_gettimermicroseconds(global.failsafetimer) > 1000000L) {
             throttleoutput = FPFAILSAFEMOTOROUTPUT;
             isfailsafeactive = true;
-
+	#if defined(X4_BUILD)
+	  // Try To Re-Bind
+	    init_a7105();
+            bind();
+        #endif
             // make sure we are level!
             angleerror[ROLLINDEX] = -global.currentestimatedeulerattitude[ROLLINDEX];
             angleerror[PITCHINDEX] = -global.currentestimatedeulerattitude[PITCHINDEX];
@@ -530,7 +598,8 @@ int main(void)
             pidoutput[x] = lib_fp_multiply(gainschedulingmultiplier, pidoutput[x]);
         }
 
-#if (CONTROL_BOARD_TYPE == CONTROL_BOARD_HUBSAN_H107L)
+#if (CONTROL_BOARD_TYPE == CONTROL_BOARD_HUBSAN_H107L) || (CONTROL_BOARD_TYPE == CONTROL_BOARD_HUBSAN_Q4)
+
 		// On Hubsan X4 H107L the front right motor
 		// rotates clockwise (viewed from top).
 		// On the J385 the motors spin in the opposite direction.
@@ -544,7 +613,11 @@ int main(void)
         // if we aren't armed, or if we desire to have the motors stop, 
         if (!global.armed
 #if (MOTORS_STOP==YES)
-            || (global.rxvalues[THROTTLEINDEX] < FPSTICKLOW && !(global.activecheckboxitems & (CHECKBOXMASKFULLACRO | CHECKBOXMASKSEMIACRO)))
+            || (global.rxvalues[THROTTLEINDEX] < FPSTICKLOW 
+		#ifndef MOTORS_STOP_ALWAYS
+		&& !(global.activecheckboxitems & (CHECKBOXMASKFULLACRO | CHECKBOXMASKSEMIACRO))
+		#endif				
+		)
 #endif
             )
             setallmotoroutputs(MIN_MOTOR_OUTPUT);
@@ -568,8 +641,12 @@ int main(void)
             if(isadcchannelref) {
                 bandgapvoltageraw = lib_adc_read_raw();
                 isadcchannelref = false;
+<<<<<<< HEAD
                 //lib_adc_select_channel(adc_bat_channel);
 								lib_adc_select_channel(LIB_ADC_CHAN2);
+=======
+                lib_adc_select_channel(adc_bat_channel);
+>>>>>>> test4/master
             } else {
 								//raw voltage is 0.0-1.0 (min to max adc )
                 batteryvoltageraw = lib_adc_read_raw();
@@ -589,17 +666,28 @@ int main(void)
                 // Use constant FIXEDPOINTONEOVERONEFOURTH instead of FIXEDPOINTONEOVERONEHALF
                 // Because we call this only every other iteration.
                 // (...alternatively multiply global.timesliver by two).      
+<<<<<<< HEAD
 								lib_fp_lowpassfilter(&(global.batteryvoltage), batteryvoltage, global.timesliver, FIXEDPOINTONEOVERONEFOURTH, TIMESLIVEREXTRASHIFT);		
+=======
+								lib_fp_lowpassfilter(&(global.batteryvoltage), batteryvoltage, global.timesliver, FIXEDPOINTONEOVERONEFOURTH, TIMESLIVEREXTRASHIFT);	
+
+#if (BATTERY_ADC_DEBUG)
+	lib_serial_sendstring(DEBUGPORT, "\r\nBANDGAP=");
+	serialprintfixedpoint_no_linebreak(0, bandgapvoltageraw);
+	lib_serial_sendstring(DEBUGPORT, " BATTERY RAW=");
+	serialprintfixedpoint_no_linebreak(0, batteryvoltageraw);
+	lib_serial_sendstring(DEBUGPORT, " BATTERY=");
+	serialprintfixedpoint_no_linebreak(0, batteryvoltage);
+	lib_serial_sendstring(DEBUGPORT, " FILTERED BAT=");
+	serialprintfixedpoint_no_linebreak(0, global.batteryvoltage);
+#endif							
+>>>>>>> test4/master
 								
 							  // Start timer if battery is below limit
                 if(global.batteryvoltage < FP_BATTERY_UNDERVOLTAGE_LIMIT) {
-									// if(batterylowtimer == 0) batterylowtimer = lib_timers_starttimer();
-									batterylowtimer++;
-									
-									if(batterylowtimer > BATTERY_LOW_TIMER)
-										isbatterylow = true;
+									 if(batterylowtimer == 0) batterylowtimer = lib_timers_starttimer();
 								}
-								else // if bettery is above limit reset batterylowtimer
+								else // if battery is above limit reset batterylowtimer
 								{
 									batterylowtimer = 0;
 								}								
@@ -608,8 +696,15 @@ int main(void)
             lib_adc_startconv();
         } // IF ADC result available			
 				
-				// it's not working, why? used upper "construction"
-				//if (lib_timers_gettimermicroseconds(batterylowtimer) > BATTERY_LOW_TIMER * 1000L) isbatterylow = true;
+							if (batterylowtimer !=0)
+				{
+				// Its working now. tested on hubsan.
+        unsigned int time = lib_timers_gettimermicroseconds(batterylowtimer);
+			  if (time > BATTERY_LOW_TIMER * 1000L) isbatterylow = true;
+				}
+
+		//		if (!(lib_timers_gettimermicroseconds(batterylowtimer) > BATTERY_LOW_TIMER * 1000L)) isbatterylow = true;
+
 				
 			  
 #endif 		
@@ -621,6 +716,7 @@ int main(void)
 				else led_status = (led_status & ~LED1);
 				#endif
 				
+<<<<<<< HEAD
 				#ifdef LED2
 				if(global.activecheckboxitems & CHECKBOXMASKLED2) led_status = (led_status | LED2);
 				else led_status = (led_status & ~LED2);
@@ -638,12 +734,37 @@ int main(void)
 					// Lost contact with TX
 					// Blink LEDs fast alternating
 					leds_blink_continuous(led_status, 125, 125);						
+=======
+#if (BATTERY_ADC_CHANNEL != NO_ADC)				
+	else if(isfailsafeactive) {
+#else
+	if(isfailsafeactive) {
+#endif					
+            // Lost contact with TX
+            // Blink LEDs fast alternating
+	    leds_blink_continuous(LED_ALL, 125, 125);
+	    //lib_serial_sendstring(DEBUGPORT, "isfailsafeactive true\r\n");
+>>>>>>> test4/master
         }
+#ifdef USERSETTINGS_CHECKBOXLEDTOGGLE
+	else if(global.activecheckboxitems & CHECKBOXMASKLEDTOGGLE)  { 
+  	    leds_set(LED_NONE);
+	}
+#endif	
         else if(!global.armed) {
+<<<<<<< HEAD
 					// Not armed
           // Short blinks
 					leds_blink_continuous(led_status, 50, 450);
 				}
+=======
+					  //lib_serial_sendstring(DEBUGPORT, "isfailsafeactive false\r\n");
+
+            // Not armed
+            // Short blinks
+						leds_blink_continuous(LED_ALL, 50, 450);
+						}
+>>>>>>> test4/master
         else {
           // LEDs stay on
 					//if (led_status != LED_STATUS)
@@ -803,6 +924,7 @@ void defaultusersettings(void)
 #ifdef USERSETTINGS_CHECKBOXYAWHOLD
 	  usersettings.checkboxconfiguration[CHECKBOXYAWHOLD] = USERSETTINGS_CHECKBOXYAWHOLD;	
 #endif
+<<<<<<< HEAD
 #ifdef USERSETTINGS_CHECKBOXLED1
 	  usersettings.checkboxconfiguration[CHECKBOXLED1] = USERSETTINGS_CHECKBOXLED1;	
 #endif
@@ -811,6 +933,11 @@ void defaultusersettings(void)
 #endif
 
 
+=======
+#ifdef USERSETTINGS_CHECKBOXLEDTOGGLE
+	  usersettings.checkboxconfiguration[CHECKBOXLEDTOGGLE] = USERSETTINGS_CHECKBOXLEDTOGGLE;	
+#endif
+>>>>>>> test4/master
 	// reset the calibration settings
     for (int x = 0; x < 3; ++x) {
         usersettings.compasszerooffset[x] = 0;
@@ -874,6 +1001,7 @@ static void detectstickcommand(void) {
         if(lib_timers_gettimermicroseconds(stickcommandtimer) > 1000000L) {
             // Timeout: last detected stick movement was more than 1 second ago.
             lastrollstickstate = STICK_STATE_START;
+            rollmovecounter=0;
         }
 
         if(rollmovecounter == 6) {
@@ -882,6 +1010,9 @@ static void detectstickcommand(void) {
             // Save in EEPROM
             writeusersettingstoeeprom();
             lastrollstickstate = STICK_STATE_START;
+            rollmovecounter=0;
+            // reset failsafe to prevent wrong activation (calibration take time)
+            global.failsafetimer = lib_timers_starttimer();
         }
     } // if throttle low
 } // checkforstickcommand()
